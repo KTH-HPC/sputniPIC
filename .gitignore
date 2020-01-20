@@ -25,6 +25,8 @@
 *.log
 *.sql
 *.sqlite
+*.vtk
+*.hdf
 
 # OS generated files #
 ######################

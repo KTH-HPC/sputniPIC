@@ -49,6 +49,7 @@ int main(int argc, char **argv){
     // Timing variables
     double iStart = cpuSecond();
     double iMover, iInterp, iField, iIO, eMover = 0.0, eInterp= 0.0, eField = 0.0, eIO=0.0;
+    double dMover, dInterp, dField;
     
     // Set-up the grid information
     grid grd;
@@ -101,24 +102,30 @@ int main(int argc, char **argv){
         
         
         // implicit mover
-        iMover = cpuSecond(); // start timer for mover
         // #pragma omp parallel for // only if use mover_PC_V
-        for (int is=0; is < param.ns; is++)
+        iMover = cpuSecond(); // start timer for mover
+        for (int is=0; is < param.ns; is++) {
             mover_PC(&part[is],&field,&grd,&param);
             //mover_PC_V(&part[is],&field,&grd,&param);
             //mover_interp(&part[is], &field, &ids[is],&grd, &param);
-        eMover += (cpuSecond() - iMover); // stop timer for mover
+        }
+        dMover = cpuSecond() - iMover;
+        eMover += dMover; // stop timer for mover
+        std::cout << "Mover time: " << dMover << std::endl;
         
         
         
         std::cout << "*** INTERPOLATION P2G ***" << std::endl;
         // interpolation particle to grid
-        iInterp = cpuSecond(); // start timer for the interpolation step
         // interpolate species: MAXIMUM parallelism is number of species
+        iInterp = cpuSecond(); // start timer for the interpolation step
         #pragma omp parallel for
-        for (int is=0; is < param.ns; is++)
+        for (int is=0; is < param.ns; is++) {
             interpP2G(&part[is],&ids[is],&grd);
-        eInterp += (cpuSecond() - iInterp); // stop timer for interpolation
+        }
+        dInterp = cpuSecond() - iInterp;
+        eInterp += dInterp; // stop timer for interpolation
+        std::cout << "Interpolation time: " << dInterp << std::endl;
         // apply BC to interpolated densities
         for (int is=0; is < param.ns; is++)
             applyBCids(&ids[is],&grd,&param);
@@ -141,8 +148,9 @@ int main(int argc, char **argv){
         calculateE(&grd,&field_aux,&field,&id_aux,ids,&param);
         // Calculate B
         calculateB(&grd,&field_aux,&field,&param);
-        eField += (cpuSecond() - iField); // stop timer for interpolation
-        
+        dField = cpuSecond() - iField;
+        eField += dField; // stop timer for interpolation
+        std::cout << "Solver time: " << dInterp << std::endl;
         
         // write E, B, rho to disk
         if (cycle%param.FieldOutputCycle==0){
