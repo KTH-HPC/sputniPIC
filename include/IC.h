@@ -3,16 +3,20 @@
 
 #include <math.h>
 
-#include "Parameters.h"
-#include "Grid.h"
 #include "EMfield.h"
-#include "Particles.h"
+#include "Grid.h"
 #include "InterpDensSpecies.h"
+#include "Parameters.h"
+#include "Particles.h"
 
 /** initialize for magnetic reconnection probelm with Harris current sheet */
-void initGEM(struct parameters* param, struct grid* grd, struct EMfield* field, struct EMfield_aux* field_aux, struct particles* part, struct interpDensSpecies* ids);
+void initGEM(struct parameters *param, struct grid *grd, struct EMfield *field,
+             struct EMfield_aux *field_aux, struct particles *part,
+             struct interpDensSpecies *ids);
 
 /** initialize uniform electric and magnetic field */
-void initUniform(struct parameters* param, struct grid* grd, struct EMfield* field, struct EMfield_aux* field_aux, struct particles* part, struct interpDensSpecies* ids);
+void initUniform(struct parameters *param, struct grid *grd,
+                 struct EMfield *field, struct EMfield_aux *field_aux,
+                 struct particles *part, struct interpDensSpecies *ids);
 
 #endif

@@ -7,9 +7,9 @@
 #include "PrecisionTypes.h"
 
 /** Smmoth Interpolation Quantity defined on Center */
-void smoothInterpScalarC(FPinterp ***vectorC, grid* grd, parameters* param);
+void smoothInterpScalarC(FPinterp ***vectorC, grid *grd, parameters *param);
 
 /** Smmoth Interpolation Quantity defined on Nodes */
-void smoothInterpScalarN(FPinterp ***vectorN, grid* grd, parameters* param);
+void smoothInterpScalarN(FPinterp ***vectorN, grid *grd, parameters *param);
 
 #endif
