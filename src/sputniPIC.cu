@@ -83,8 +83,9 @@ int main(int argc, char **argv) {
   // Allocate Particles
   particles *part = new particles[param.ns];
   // allocation
-  for (int is = 0; is < param.ns; is++)
-    particle_allocate(&param, &part[is], is);
+  for (int is = 0; is < param.ns; is++) {
+    particle_allocate_host(&param, &part[is], is);
+  }
 
   // Initialization
   initGEM(&param, &grd, &field, &field_aux, part, ids);
