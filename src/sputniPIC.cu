@@ -58,6 +58,9 @@ int main(int argc, char **argv) {
                                        eField = 0.0, eIO = 0.0;
   double dMover, dInterp, dField;
 
+  int num_devices;
+  checkCudaErrors(cudaGetDeviceCount(&num_devices));
+
   // Set-up the grid information
   grid grd;
   setGrid(&param, &grd);
@@ -92,24 +95,32 @@ int main(int argc, char **argv) {
   // initUniform(&param,&grd,&field,&field_aux,part,ids);
   // ********************** GPU ALLOCATION ********************//
   // Create the parameters on the GPU and copy the data to the device.
-  parameters* param_gpu_ptr = nullptr;
-  param_alloc_and_copy_to_device(&param, &param_gpu_ptr);
+  parameters* param_gpu_ptr[num_devices] = { nullptr };
+  for (int device_id = 0; device_id < num_devices; device_id++) {
+      param_alloc_and_copy_to_device(&param, &param_gpu_ptr[device_id]);
+  }
 
   // Create the grid on the GPU and copy the data to the device.
-  grid grid_gpu;
-  grid* grid_gpu_ptr = nullptr;
-  grid_alloc_and_copy_to_device(&grd, &grid_gpu, &grid_gpu_ptr);
+  grid grid_gpu[num_devices];
+  grid* grid_gpu_ptr[num_devices] = { nullptr };
+  for (int device_id = 0; device_id < num_devices; device_id++) {
+      grid_alloc_and_copy_to_device(&grd, &grid_gpu[device_id], &grid_gpu_ptr[device_id]);
+  }
   
   // Create the electromagnetic field on the GPU and copy the data to the device.
-  EMfield field_gpu;
-  EMfield* field_gpu_ptr = nullptr;
-  field_alloc_and_copy_to_device(&grd, &field_gpu, &field, &field_gpu_ptr);
+  EMfield field_gpu[num_devices];
+  EMfield* field_gpu_ptr[num_devices] = { nullptr };
+  for (int device_id = 0; device_id < num_devices; device_id++) {
+      field_alloc_and_copy_to_device(&grd, &field_gpu[device_id], &field, &field_gpu_ptr[device_id]);
+  }
   
   // Create interpolated quantities on the GPU and and copy the data to the device.
   interpDensSpecies* ids_gpu = new interpDensSpecies[param.ns]; //array
   interpDensSpecies** ids_gpu_ptr = new interpDensSpecies*[param.ns]; //array
   for (int is = 0; is < param.ns; is++)
   {
+      int device_id = (is + num_devices) % num_devices;
+      checkCudaErrors(cudaSetDevice(device_id));
       // Init and copy data here.
       interp_DS_alloc_and_copy_to_device(&ids[is], &ids_gpu[is], &ids_gpu_ptr[is], &grd);
   }
@@ -133,12 +144,16 @@ int main(int argc, char **argv) {
   if(batch_size <= 0){
       return -1;
   }
+  batch_size *= num_devices;
 
+  std::cout << "Total number of GPUs: " << num_devices << std::endl;
   std::cout << "Total number of particles: " << np << "; " << (np*sizeof(FPpart)*6)/(1024*1024) << " MB of data."  << std::endl;
   std::cout << "Allocating " << (batch_size*param.ns*sizeof(FPpart)*6)/(1024*1024) << " MB of memory for particles on gpu" << std::endl;
   std::cout << "(batch_size of " << (batch_size*sizeof(FPpart)*6)/(1024*1024) << " MB)" << std::endl;
 
   for (int is = 0; is < param.ns; is++) {
+      int device_id = (is + num_devices) % num_devices;
+      checkCudaErrors(cudaSetDevice(device_id));
       particles_info_alloc_and_copy_to_device(&part_info_gpu[is], &part_info_gpu_ptr[is], &part[is]);
       particles_positions_alloc_device(&part_positions_gpu[is], &part_positions_gpu_ptr[is], batch_size);
   }  
@@ -146,6 +161,8 @@ int main(int argc, char **argv) {
   // create cuda streams for asynchronous workloading 
   cudaStream_t* streams = new cudaStream_t[param.ns];
   for(int is=0; is<param.ns; is++) {
+      int device_id = (is + num_devices) % num_devices;
+      checkCudaErrors(cudaSetDevice(device_id));
       checkCudaErrors(cudaStreamCreateWithFlags(&streams[is], cudaStreamNonBlocking));
   }
 
@@ -163,7 +180,10 @@ int main(int argc, char **argv) {
 
     // set to zero the densities - needed for interpolation
     setZeroNetDensities(&idn, &grd);
-    copy_from_host_to_device(&field_gpu, &field, grd.nxn * grd.nyn * grd.nzn);
+    for (int device_id = 0; device_id < num_devices; device_id++) {
+        checkCudaErrors(cudaSetDevice(device_id));
+        copy_from_host_to_device(&field_gpu[device_id], &field, grd.nxn * grd.nyn * grd.nzn);
+    }
 
     // implicit mover
     // #pragma omp parallel for // only if use mover_PC_V
@@ -171,22 +191,24 @@ int main(int argc, char **argv) {
 
     for(int is=0; is<param.ns; is++){
         //cudaStreamSynchronize(streams[is]);
-        setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr, ids_gpu_ptr[is], is);
+        int device_id = (is + num_devices) % num_devices;
+        setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr[device_id], ids_gpu_ptr[is], is);
     }
 
     for (int is=0; is < param.ns; is++)
     {
+        int device_id = (is + num_devices) % num_devices;
         //cudaStreamSynchronize(streams[is]);
         int b = batch_update_particles(
-            &streams[is], 
-            &part[is], 
-            &part_positions_gpu[is], 
-            part_positions_gpu_ptr[is], 
-            part_info_gpu_ptr[is], 
-            field_gpu_ptr,
-            grid_gpu_ptr, 
-            ids_gpu_ptr[is], 
-            param_gpu_ptr, 
+            &streams[is],
+            &part[is],
+            &part_positions_gpu[is],
+            part_positions_gpu_ptr[is],
+            part_info_gpu_ptr[is],
+            field_gpu_ptr[device_id],
+            grid_gpu_ptr[device_id],
+            ids_gpu_ptr[is],
+            param_gpu_ptr[device_id],
             batch_size
             );
         std::cout << "Move and interpolate on gpu. Species " << is << " - " << b << " batches " << std::endl;            
@@ -201,8 +223,9 @@ int main(int argc, char **argv) {
          * synchronization needed, interpolation needs to finish before we can
          * apply boundary conditions
          */ 
+        int device_id = (is + num_devices) % num_devices;
         cudaStreamSynchronize(streams[is]);
-        applyBCids_gpu(&streams[is], ids_gpu_ptr[is], grid_gpu_ptr, &grd, &param);
+        applyBCids_gpu(&streams[is], ids_gpu_ptr[is], grid_gpu_ptr[device_id], &grd, &param);
     }
 
     // sum over species
@@ -213,6 +236,8 @@ int main(int argc, char **argv) {
 
     for (int is=0; is < param.ns; is++)
     {
+        int device_id = (is + num_devices) % num_devices;
+        checkCudaErrors(cudaSetDevice(device_id));
         interp_DS_copy_to_host(&ids_gpu[is], &ids[is], &grd);
     }
     cudaDeviceSynchronize();
@@ -259,6 +284,9 @@ int main(int argc, char **argv) {
   // Deallocate interpolated densities and particles
   for (int is=0; is < param.ns; is++)
   {
+      int device_id = (is + num_devices) % num_devices;
+      checkCudaErrors(cudaSetDevice(device_id));
+
       interp_dens_species_deallocate(&grd,&ids[is]);
       particle_deallocate_host(&part[is]);
   }
@@ -271,16 +299,21 @@ int main(int argc, char **argv) {
       checkCudaErrors(cudaStreamDestroy(streams[is]));
   }
 
-  // Parameters
-  checkCudaErrors(cudaFree(param_gpu_ptr));
-  // Grid
-  grid_deallocate_device(&grid_gpu, grid_gpu_ptr);
-  // EMfield
-  field_deallocate_device(&field_gpu, field_gpu_ptr);
+  for (int device_id = 0; device_id < num_devices; device_id++) {
+      // Parameters
+      checkCudaErrors(cudaFree(param_gpu_ptr[device_id]));
+      // Grid
+      grid_deallocate_device(&grid_gpu[device_id], grid_gpu_ptr[device_id]);
+      // EMfield
+      field_deallocate_device(&field_gpu[device_id], field_gpu_ptr[device_id]);
+  }
 
   // interpDensSpecies
   for(int is = 0; is < param.ns; is++)
   {
+      int device_id = (is + num_devices) % num_devices;
+      checkCudaErrors(cudaSetDevice(device_id));
+
       interp_DS_dealloc_device(&ids_gpu[is], ids_gpu_ptr[is]);
       particles_info_dealloc_device(part_info_gpu_ptr[is]);
       particles_positions_dealloc_device(&part_positions_gpu[is], part_positions_gpu_ptr[is]);
