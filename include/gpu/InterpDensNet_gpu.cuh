@@ -39,10 +39,10 @@ void interp_DNet_alloc_and_copy_to_device(
     struct interpDensNet* idn_cpu, struct interpDensNet* idn_gpu, struct interpDensNet** idn_gpu_ptr, struct grid* grd);
 
 
-void setZeroDensities_gpu(cudaStream_t* stream, struct grid* grd, struct grid* grd_gpu_ptr, struct interpDensNet* idn_gpu_ptr, struct interpDensSpecies* ids_gpu_ptr, int id);
+void setZeroSpeciesDensities_gpu(cudaStream_t* stream, struct grid* grd, struct grid* grd_gpu_ptr, struct interpDensSpecies* ids_gpu_ptr, int id);
 
 __global__
-void set_zero_densities_nodes(struct interpDensNet* idn, struct interpDensSpecies* ids, struct grid* grd, int n);
+void set_zero_species_densities_nodes(struct interpDensSpecies* ids, struct grid* grd, int n);
 
 
 void sumOverSpecies_gpu(struct interpDensNet* idn_gpu_ptr, struct interpDensSpecies* ids_gpu_ptr, struct grid* grd_gpu_ptr, struct grid* grd);

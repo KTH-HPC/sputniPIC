@@ -113,30 +113,18 @@ void interp_DNet_alloc_and_copy_to_device(
 }
 
 
-void setZeroDensities_gpu(cudaStream_t* stream, struct grid* grd, struct grid* grd_gpu_ptr, struct interpDensNet* idn_gpu_ptr, struct interpDensSpecies* ids_gpu_ptr, int id){
-
-    // int TPB = 8;
-// 
-    // dim3 _grid(
-    //     (grd->nxn+TPB-1)/TPB, 
-    //     (grd->nyn+TPB-1)/TPB, 
-    //     (grd->nzn+TPB-1)/TPB);
-    // dim3 block(TPB, TPB, TPB);
+void setZeroSpeciesDensities_gpu(cudaStream_t* stream, struct grid* grd, struct grid* grd_gpu_ptr, struct interpDensSpecies* ids_gpu_ptr, int id){
 
     int blocks = (grd->nxn*grd->nyn*grd->nzn + THREADS_PER_BLOCK-1)/THREADS_PER_BLOCK;
 
-    set_zero_densities_nodes<<<blocks, THREADS_PER_BLOCK,0, *stream>>>(idn_gpu_ptr, ids_gpu_ptr, grd_gpu_ptr, id);
+    set_zero_species_densities_nodes<<<blocks, THREADS_PER_BLOCK,0, *stream>>>(ids_gpu_ptr, grd_gpu_ptr, id);
 
 }
 
 /** set all the densities to zero */
 __global__
-void set_zero_densities_nodes(struct interpDensNet* idn, struct interpDensSpecies* ids, struct grid* grd, int n)
+void set_zero_species_densities_nodes(struct interpDensSpecies* ids, struct grid* grd, int n)
 {
-	// int x = blockIdx.x * blockDim.x + threadIdx.x;
-	// int y = blockIdx.y * blockDim.y + threadIdx.y;
-    // int z = blockIdx.z * blockDim.z + threadIdx.z;
-
     int local_index = blockIdx.x * blockDim.x + threadIdx.x;
     int x = local_index % grd->nxn;
     local_index = local_index / grd->nxn;
@@ -167,23 +155,6 @@ void set_zero_densities_nodes(struct interpDensNet* idn, struct interpDensSpecie
     ids->pyz_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
     ids->pzz_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
 
-    // Centers are always one fewer than nodes (since they are inbetween nodes)
-
-    if(n==0){
-        idn->rhon_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
-        // current
-        idn->Jx_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
-        idn->Jy_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
-        idn->Jz_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
-        // pressure
-        idn->pxx_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
-        idn->pxy_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
-        idn->pxz_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
-        idn->pyy_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
-        idn->pyz_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
-        idn->pzz_flat[get_idx(x,y,z, grd->nyn, grd->nzn)] = 0.0;
-    }
-
     if(grd->nxc <= x){
         return;
     }
@@ -195,9 +166,6 @@ void set_zero_densities_nodes(struct interpDensNet* idn, struct interpDensSpecie
     }
 
     ids->rhoc_flat[get_idx(x,y,z, grd->nyc, grd->nzc)] = 0.0;
-    if(n==0){
-        idn->rhoc_flat[get_idx(x,y,z, grd->nyc, grd->nzc)] = 0.0;
-    }
 }
 
 

@@ -36,40 +36,9 @@ void interp_dens_net_deallocate(struct grid *grd, struct interpDensNet *idn) {
   delArr3(idn->pzz, grd->nxn, grd->nyn);
 }
 
-/** set all the densities to zero */
-void setZeroDensities(struct interpDensNet *idn, struct interpDensSpecies *ids,
+/* set species densities to zero */
+void setZeroSpeciesDensities(struct interpDensSpecies *ids,
                       struct grid *grd, int ns) {
-//////////////////////////////////////
-// Net densities
-// calculate the coordinates - Nodes
-#pragma omp parallel for
-  for (int i = 0; i < grd->nxn; i++)
-    for (int j = 0; j < grd->nyn; j++)
-#pragma clang loop vectorize(enable)
-      for (int k = 0; k < grd->nzn; k++) {
-        // charge density
-        idn->rhon[i][j][k] = 0.0;  // quantities defined on node
-        // current
-        idn->Jx[i][j][k] = 0.0;  // quantities defined on node
-        idn->Jy[i][j][k] = 0.0;  // quantities defined on node
-        idn->Jz[i][j][k] = 0.0;  // quantities defined on node
-        // pressure
-        idn->pxx[i][j][k] = 0.0;  // quantities defined on node
-        idn->pxy[i][j][k] = 0.0;  // quantities defined on node
-        idn->pxz[i][j][k] = 0.0;  // quantities defined on node
-        idn->pyy[i][j][k] = 0.0;  // quantities defined on node
-        idn->pyz[i][j][k] = 0.0;  // quantities defined on node
-        idn->pzz[i][j][k] = 0.0;  // quantities defined on node
-      }
-
-      // center cell rhoc
-#pragma omp parallel for
-  for (int i = 0; i < grd->nxc; i++)
-    for (int j = 0; j < grd->nyc; j++)
-#pragma clang loop vectorize(enable)
-      for (int k = 0; k < grd->nzc; k++) {
-        idn->rhoc[i][j][k] = 0.0;  // quantities defined on center cells
-      }
 
   //////////////////////////////////
   // Densities per species
@@ -104,6 +73,49 @@ void setZeroDensities(struct interpDensNet *idn, struct interpDensSpecies *ids,
         for (int k = 0; k < grd->nzc; k++) {
           ids[is].rhoc[i][j][k] = 0.0;
         }
+}
+
+/* set species densities to zero */
+void setZeroNetDensities(struct interpDensNet *idn, struct grid *grd) {
+    //////////////////////////////////////
+    // Net densities
+    // calculate the coordinates - Nodes
+    #pragma omp parallel for
+      for (int i = 0; i < grd->nxn; i++)
+        for (int j = 0; j < grd->nyn; j++)
+    #pragma clang loop vectorize(enable)
+          for (int k = 0; k < grd->nzn; k++) {
+            // charge density
+            idn->rhon[i][j][k] = 0.0;  // quantities defined on node
+            // current
+            idn->Jx[i][j][k] = 0.0;  // quantities defined on node
+            idn->Jy[i][j][k] = 0.0;  // quantities defined on node
+            idn->Jz[i][j][k] = 0.0;  // quantities defined on node
+            // pressure
+            idn->pxx[i][j][k] = 0.0;  // quantities defined on node
+            idn->pxy[i][j][k] = 0.0;  // quantities defined on node
+            idn->pxz[i][j][k] = 0.0;  // quantities defined on node
+            idn->pyy[i][j][k] = 0.0;  // quantities defined on node
+            idn->pyz[i][j][k] = 0.0;  // quantities defined on node
+            idn->pzz[i][j][k] = 0.0;  // quantities defined on node
+          }
+
+          // center cell rhoc
+    #pragma omp parallel for
+      for (int i = 0; i < grd->nxc; i++)
+        for (int j = 0; j < grd->nyc; j++)
+    #pragma clang loop vectorize(enable)
+          for (int k = 0; k < grd->nzc; k++) {
+            idn->rhoc[i][j][k] = 0.0;  // quantities defined on center cells
+          }
+
+}
+
+/** set all the densities to zero */
+void setZeroDensities(struct interpDensNet *idn, struct interpDensSpecies *ids,
+                      struct grid *grd, int ns) {
+    setZeroNetDensities(idn, grd);
+    setZeroSpeciesDensities(ids, grd, ns);
 }
 
 /** set all the densities to zero */

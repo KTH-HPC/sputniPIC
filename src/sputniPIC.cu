@@ -114,9 +114,9 @@ int main(int argc, char **argv) {
       interp_DS_alloc_and_copy_to_device(&ids[is], &ids_gpu[is], &ids_gpu_ptr[is], &grd);
   }
 
-  interpDensNet idn_gpu;
-  interpDensNet* idn_gpu_ptr = nullptr;
-  interp_DNet_alloc_and_copy_to_device(&idn, &idn_gpu, &idn_gpu_ptr, &grd);
+//  interpDensNet idn_gpu;
+//  interpDensNet* idn_gpu_ptr = nullptr;
+//  interp_DNet_alloc_and_copy_to_device(&idn, &idn_gpu, &idn_gpu_ptr, &grd);
 
   // Create particle information on the GPU and copy the data to the device.
   particles_info_gpu* part_info_gpu = new particles_info_gpu[param.ns]; // array
@@ -137,16 +137,15 @@ int main(int argc, char **argv) {
   std::cout << "Total number of particles: " << np << "; " << (np*sizeof(FPpart)*6)/(1024*1024) << " MB of data."  << std::endl;
   std::cout << "Allocating " << (batch_size*param.ns*sizeof(FPpart)*6)/(1024*1024) << " MB of memory for particles on gpu" << std::endl;
   std::cout << "(batch_size of " << (batch_size*sizeof(FPpart)*6)/(1024*1024) << " MB)" << std::endl;
-  for (int is = 0; is < param.ns; is++)
-  {
+
+  for (int is = 0; is < param.ns; is++) {
       particles_info_alloc_and_copy_to_device(&part_info_gpu[is], &part_info_gpu_ptr[is], &part[is]);
       particles_positions_alloc_device(&part_positions_gpu[is], &part_positions_gpu_ptr[is], batch_size);
   }  
 
   // create cuda streams for asynchronous workloading 
   cudaStream_t* streams = new cudaStream_t[param.ns];
-  for(int is=0; is<param.ns; is++){
-
+  for(int is=0; is<param.ns; is++) {
       checkCudaErrors(cudaStreamCreateWithFlags(&streams[is], cudaStreamNonBlocking));
   }
 
@@ -163,7 +162,7 @@ int main(int argc, char **argv) {
     std::cout << "***********************" << std::endl;
 
     // set to zero the densities - needed for interpolation
-//    setZeroDensities(&idn, ids, &grd, param.ns);
+    setZeroNetDensities(&idn, &grd);
     copy_from_host_to_device(&field_gpu, &field, grd.nxn * grd.nyn * grd.nzn);
 
     // implicit mover
@@ -172,7 +171,7 @@ int main(int argc, char **argv) {
 
     for(int is=0; is<param.ns; is++){
         //cudaStreamSynchronize(streams[is]);
-        setZeroDensities_gpu(&streams[is], &grd, grid_gpu_ptr, idn_gpu_ptr, ids_gpu_ptr[is], is);
+        setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr, ids_gpu_ptr[is], is);
     }
 
     for (int is=0; is < param.ns; is++)
@@ -208,18 +207,17 @@ int main(int argc, char **argv) {
 
     // sum over species
     cudaDeviceSynchronize();
-    for (int is=0; is < param.ns; is++)
-    {
-        sumOverSpecies_gpu(idn_gpu_ptr, ids_gpu_ptr[is], grid_gpu_ptr, &grd);
-        interp_DS_copy_to_host(&ids_gpu[is], &ids[is], &grd);
-    }
-    cudaDeviceSynchronize();
-    interp_DNet_copy_to_host(&idn_gpu, &idn, &grd);
- 
     dMover = cpuSecond() - iMover;
     eMover += dMover;  // stop timer for mover
     std::cout << "Mover and interpolation time: " << dMover << std::endl;
 
+    for (int is=0; is < param.ns; is++)
+    {
+        interp_DS_copy_to_host(&ids_gpu[is], &ids[is], &grd);
+    }
+    cudaDeviceSynchronize();
+    sumOverSpecies(&idn, ids, &grd, param.ns);
+ 
     // Maxwell solver
     iField = cpuSecond();  // start timer for the interpolation step
 
@@ -238,7 +236,7 @@ int main(int argc, char **argv) {
     calculateB(&grd, &field_aux, &field, &param);
     dField = cpuSecond() - iField;
     eField += dField;  // stop timer for interpolation
-    std::cout << "Solver time: " << dInterp << std::endl;
+    std::cout << "Solver time: " << dField << std::endl;
 
     // write E, B, rho to disk
     if (cycle % param.FieldOutputCycle == 0) {
@@ -287,7 +285,7 @@ int main(int argc, char **argv) {
       particles_info_dealloc_device(part_info_gpu_ptr[is]);
       particles_positions_dealloc_device(&part_positions_gpu[is], part_positions_gpu_ptr[is]);
   }
-  interp_DNet_dealloc_device(&idn_gpu, idn_gpu_ptr);
+//  interp_DNet_dealloc_device(&idn_gpu, idn_gpu_ptr);
 
   delete[] ids_gpu;
   delete[] ids_gpu_ptr;
