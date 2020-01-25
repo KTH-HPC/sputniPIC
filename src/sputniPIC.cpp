@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
   double iStart = cpuSecond();
   double iMover, iInterp, iField, iIO, eMover = 0.0, eInterp = 0.0,
                                        eField = 0.0, eIO = 0.0;
-  double dMover, dInterp, dField, dIO;
+  double dMover = 0.0, dInterp = 0.0, dField = 0.0, dIO = 0.0;
 
   int num_devices;
   checkCudaErrors(cudaGetDeviceCount(&num_devices));
@@ -283,7 +283,8 @@ int main(int argc, char** argv) {
       eIO += dIO;  // stop timer for interpolation
     }
 
-    std::cout << "Cycle " << cycle << " : " << dMover << " " << dField << " "
+    // print dummy zero for interp
+    std::cout << "Cycle " << cycle << " : " << dMover << " 0.0 " << dField << " "
               << dIO << std::endl;
 
   }  // end of one PIC cycle
