@@ -4,8 +4,8 @@ CXX=g++
 CXXFLAGS=-DMEMCHECK -std=c++11 -I./include -O3 -g -Xcompiler "-fopenmp -Wall -Wno-unknown-pragmas"
 
 NVCC=nvcc
-ARCH=sm_30
-NVCCFLAGS= -lineinfo -I./include -arch=$(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wall -Wno-unknown-pragma -Wno-unknown-pragmass" --compiler-bindir=$(CXX)
+ARCH= -gencode arch=compute_30,code=sm_30 -gencode arch=compute_37,code=sm_37 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70
+NVCCFLAGS= -lineinfo -I./include $(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wall -Wno-unknown-pragma -Wno-unknown-pragmass" --compiler-bindir=$(CXX)
 
 SRCDIR=src
 SRCS=$(shell find $(SRCDIR) -name '*.cu' -o -name '*.cpp')
