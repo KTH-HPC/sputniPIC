@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
   double iStart = cpuSecond();
   double iMover, iInterp, iField, iIO, eMover = 0.0, eInterp = 0.0,
                                        eField = 0.0, eIO = 0.0;
-  double dMover, dInterp, dField;
+  double dMover, dInterp, dField, dIO;
 
   int num_devices;
   checkCudaErrors(cudaGetDeviceCount(&num_devices));
@@ -74,11 +74,14 @@ int main(int argc, char** argv) {
   // Allocate Interpolated Quantities
   // per species
   interpDensSpecies* ids = new interpDensSpecies[param.ns];
-  for (int is = 0; is < param.ns; is++)
+  for (int is = 0; is < param.ns; is++) {
     interp_dens_species_allocate(&grd, &ids[is], is);
+  }
+
   // Net densities
   interpDensNet idn;
   interp_dens_net_allocate(&grd, &idn);
+
   // Hat densities
   interpDens_aux id_aux;
   interp_dens_aux_allocate(&grd, &id_aux);
@@ -93,6 +96,7 @@ int main(int argc, char** argv) {
   // Initialization
   initGEM(&param, &grd, &field, &field_aux, part, ids);
   // initUniform(&param,&grd,&field,&field_aux,part,ids);
+
   // ********************** GPU ALLOCATION ********************//
   // Create the parameters on the GPU and copy the data to the device.
   parameters* param_gpu_ptr[num_devices] = {nullptr};
@@ -132,10 +136,6 @@ int main(int argc, char** argv) {
                                        &grd);
   }
 
-  //  interpDensNet idn_gpu;
-  //  interpDensNet* idn_gpu_ptr = nullptr;
-  //  interp_DNet_alloc_and_copy_to_device(&idn, &idn_gpu, &idn_gpu_ptr, &grd);
-
   // Create particle information on the GPU and copy the data to the device.
   particles_info_gpu* part_info_gpu =
       new particles_info_gpu[param.ns];  // array
@@ -151,11 +151,12 @@ int main(int argc, char** argv) {
   for (int is = 0; is < param.ns; is++) {
     np += part[is].nop;
   }
+
   int batch_size = get_appropriate_batch_size(param.ns);
   if (batch_size <= 0) {
     return -1;
   }
-  batch_size *= num_devices;
+  batch_size *= num_devices; /* size computed based on free mem of one device */
 
   std::cout << "Total number of GPUs: " << num_devices << std::endl;
   std::cout << "Total number of particles: " << np << "; "
@@ -168,6 +169,7 @@ int main(int argc, char** argv) {
             << (batch_size * sizeof(FPpart) * 6) / (1024 * 1024) << " MB)"
             << std::endl;
 
+  // allocate field and copy to GPUs
   for (int is = 0; is < param.ns; is++) {
     int device_id = (is + num_devices) % num_devices;
     checkCudaErrors(cudaSetDevice(device_id));
@@ -198,31 +200,31 @@ int main(int argc, char** argv) {
 
     // set to zero the densities - needed for interpolation
     setZeroNetDensities(&idn, &grd);
+
+    // implicit mover
+    iMover = cpuSecond();  // start timer for mover
+
+    // blocking copy updated field from prev cycle
     for (int device_id = 0; device_id < num_devices; device_id++) {
       checkCudaErrors(cudaSetDevice(device_id));
       copy_from_host_to_device(&field_gpu[device_id], &field,
                                grd.nxn * grd.nyn * grd.nzn);
     }
 
-    // implicit mover
-    iMover = cpuSecond();  // start timer for mover
-
+    // async set zero, move and interp
     for (int is = 0; is < param.ns; is++) {
       int device_id = (is + num_devices) % num_devices;
       checkCudaErrors(cudaSetDevice(device_id));
       setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr[device_id],
                                   &ids_gpu[is], is);
-    }
-
-    for (int is = 0; is < param.ns; is++) {
-      int device_id = (is + num_devices) % num_devices;
-      checkCudaErrors(cudaSetDevice(device_id));
-      // cudaStreamSynchronize(streams[is]);
       int b = batch_update_particles(
           &streams[is], &part[is], &part_positions_gpu[is],
           part_positions_gpu_ptr[is], part_info_gpu_ptr[is],
           field_gpu_ptr[device_id], grid_gpu_ptr[device_id], ids_gpu_ptr[is],
           param_gpu_ptr[device_id], batch_size);
+
+      applyBCids_gpu(&streams[is], ids_gpu_ptr[is], grid_gpu_ptr[device_id],
+                     &grd, &param);
       std::cout << "Move and interpolate on gpu " << device_id << " Species "
                 << is << " - " << b << " batches " << std::endl;
     }
@@ -237,31 +239,29 @@ int main(int argc, char** argv) {
       int device_id = (is + num_devices) % num_devices;
       checkCudaErrors(cudaSetDevice(device_id));
       cudaStreamSynchronize(streams[is]);
-      applyBCids_gpu(&streams[is], ids_gpu_ptr[is], grid_gpu_ptr[device_id],
-                     &grd, &param);
     }
 
-    // sum over species
-    cudaDeviceSynchronize();
-    dMover = cpuSecond() - iMover;
-    eMover += dMover;  // stop timer for mover
-    std::cout << "Mover and interpolation time: " << dMover << std::endl;
-
+    // copy back quantities from GPUs
     for (int is = 0; is < param.ns; is++) {
       int device_id = (is + num_devices) % num_devices;
       checkCudaErrors(cudaSetDevice(device_id));
       interp_DS_copy_to_host(&ids_gpu[is], &ids[is], &grd);
     }
-    sumOverSpecies(&idn, ids, &grd, param.ns);
 
-    // Maxwell solver
-    iField = cpuSecond();  // start timer for the interpolation step
+    dMover = cpuSecond() - iMover;
+    eMover += dMover;  // stop timer for mover
+
+    // sum over species
+    sumOverSpecies(&idn, ids, &grd, param.ns);
 
     // interpolate charge density from center to node
     applyBCscalarDensN(idn.rhon, &grd, &param);
     interpN2Cinterp(idn.rhoc, idn.rhon, &grd);
     // calculate hat functions rhoh and Jxh, Jyh, Jzh
     calculateHatDensities(&id_aux, &idn, ids, &field, &grd, &param);
+
+    // Start Maxwell solver
+    iField = cpuSecond();  // start timer for the interpolation step
 
     //  Poisson correction
     if (param.PoissonCorrection)
@@ -270,17 +270,21 @@ int main(int argc, char** argv) {
     calculateE(&grd, &field_aux, &field, &id_aux, ids, &param);
     // Calculate B
     calculateB(&grd, &field_aux, &field, &param);
+
     dField = cpuSecond() - iField;
-    eField += dField;  // stop timer for interpolation
-    std::cout << "Solver time: " << dField << std::endl;
+    eField += dField;  // stop timer for solvers
 
     // write E, B, rho to disk
     if (cycle % param.FieldOutputCycle == 0) {
       iIO = cpuSecond();
       VTK_Write_Vectors(cycle, &grd, &field);
       VTK_Write_Scalars(cycle, &grd, ids, &idn);
-      eIO += (cpuSecond() - iIO);  // stop timer for interpolation
+      dIO = (cpuSecond() - iIO);
+      eIO += dIO;  // stop timer for interpolation
     }
+
+    std::cout << "Cycle " << cycle << " : " << dMover << " " << dField << " "
+              << dIO << std::endl;
 
   }  // end of one PIC cycle
 
