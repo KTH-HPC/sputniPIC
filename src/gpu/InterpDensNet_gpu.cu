@@ -117,8 +117,20 @@ void setZeroSpeciesDensities_gpu(cudaStream_t* stream, struct grid* grd, struct 
 
     int blocks = (grd->nxn*grd->nyn*grd->nzn + THREADS_PER_BLOCK-1)/THREADS_PER_BLOCK;
 
-    set_zero_species_densities_nodes<<<blocks, THREADS_PER_BLOCK,0, *stream>>>(ids_gpu_ptr, grd_gpu_ptr, id);
+//    set_zero_species_densities_nodes<<<blocks, THREADS_PER_BLOCK,0, *stream>>>(ids_gpu_ptr, grd_gpu_ptr, id);
+//    checkCudaErrors(cudaPeekAtLastError());
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->Jx_flat, 0, sizeof(FPinterp)*grd->nxn*grd->nyn*grd->nzn, *stream));
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->Jy_flat, 0, sizeof(FPinterp)*grd->nxn*grd->nyn*grd->nzn, *stream));
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->Jz_flat, 0, sizeof(FPinterp)*grd->nxn*grd->nyn*grd->nzn, *stream));
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->pxx_flat, 0, sizeof(FPinterp)*grd->nxn*grd->nyn*grd->nzn, *stream));
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->pxy_flat, 0, sizeof(FPinterp)*grd->nxn*grd->nyn*grd->nzn, *stream));
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->pxz_flat, 0, sizeof(FPinterp)*grd->nxn*grd->nyn*grd->nzn, *stream));
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->pyy_flat, 0, sizeof(FPinterp)*grd->nxn*grd->nyn*grd->nzn, *stream));
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->pyz_flat, 0, sizeof(FPinterp)*grd->nxn*grd->nyn*grd->nzn, *stream));
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->pzz_flat, 0, sizeof(FPinterp)*grd->nxn*grd->nyn*grd->nzn, *stream));
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->rhon_flat, 0, sizeof(FPinterp)*grd->nxn*grd->nyn*grd->nzn, *stream));
 
+    checkCudaErrors(cudaMemsetAsync(ids_gpu_ptr->rhoc_flat, 0, sizeof(FPinterp)*grd->nxc*grd->nyc*grd->nzc, *stream));
 }
 
 /** set all the densities to zero */

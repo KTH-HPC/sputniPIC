@@ -97,6 +97,7 @@ int main(int argc, char **argv) {
   // Create the parameters on the GPU and copy the data to the device.
   parameters* param_gpu_ptr[num_devices] = { nullptr };
   for (int device_id = 0; device_id < num_devices; device_id++) {
+      checkCudaErrors(cudaSetDevice(device_id));
       param_alloc_and_copy_to_device(&param, &param_gpu_ptr[device_id]);
   }
 
@@ -104,6 +105,7 @@ int main(int argc, char **argv) {
   grid grid_gpu[num_devices];
   grid* grid_gpu_ptr[num_devices] = { nullptr };
   for (int device_id = 0; device_id < num_devices; device_id++) {
+      checkCudaErrors(cudaSetDevice(device_id));
       grid_alloc_and_copy_to_device(&grd, &grid_gpu[device_id], &grid_gpu_ptr[device_id]);
   }
   
@@ -111,6 +113,7 @@ int main(int argc, char **argv) {
   EMfield field_gpu[num_devices];
   EMfield* field_gpu_ptr[num_devices] = { nullptr };
   for (int device_id = 0; device_id < num_devices; device_id++) {
+      checkCudaErrors(cudaSetDevice(device_id));
       field_alloc_and_copy_to_device(&grd, &field_gpu[device_id], &field, &field_gpu_ptr[device_id]);
   }
   
@@ -192,12 +195,15 @@ int main(int argc, char **argv) {
     for(int is=0; is<param.ns; is++){
         //cudaStreamSynchronize(streams[is]);
         int device_id = (is + num_devices) % num_devices;
-        setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr[device_id], ids_gpu_ptr[is], is);
+        checkCudaErrors(cudaSetDevice(device_id));
+        //setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr[device_id], ids_gpu_ptr[is], is);
+        setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr[device_id], &ids_gpu[is], is);
     }
 
     for (int is=0; is < param.ns; is++)
     {
         int device_id = (is + num_devices) % num_devices;
+        checkCudaErrors(cudaSetDevice(device_id));
         //cudaStreamSynchronize(streams[is]);
         int b = batch_update_particles(
             &streams[is],
@@ -211,8 +217,12 @@ int main(int argc, char **argv) {
             param_gpu_ptr[device_id],
             batch_size
             );
-        std::cout << "Move and interpolate on gpu. Species " << is << " - " << b << " batches " << std::endl;            
+        std::cout << "Move and interpolate on gpu " << device_id << " Species " << is << " - " << b << " batches " << std::endl;            
 
+//        checkCudaErrors(cudaDeviceSynchronize());
+//        for (int j = 0; j < part[is].nop; j++) {
+//            std::cout << "x: " << part[is].x[j] << "," << part[is].y[j] << "," << part[is].z[j] << std::endl;
+//        }
     }
     std::cout << "***********************" << std::endl;
 
@@ -224,6 +234,7 @@ int main(int argc, char **argv) {
          * apply boundary conditions
          */ 
         int device_id = (is + num_devices) % num_devices;
+        checkCudaErrors(cudaSetDevice(device_id));
         cudaStreamSynchronize(streams[is]);
         applyBCids_gpu(&streams[is], ids_gpu_ptr[is], grid_gpu_ptr[device_id], &grd, &param);
     }
@@ -240,7 +251,6 @@ int main(int argc, char **argv) {
         checkCudaErrors(cudaSetDevice(device_id));
         interp_DS_copy_to_host(&ids_gpu[is], &ids[is], &grd);
     }
-    cudaDeviceSynchronize();
     sumOverSpecies(&idn, ids, &grd, param.ns);
  
     // Maxwell solver

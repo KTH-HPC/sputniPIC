@@ -50,6 +50,7 @@ void particle_allocate_host(struct parameters* param, struct particles* part, in
     /// ALLOCATION PARTICLE ARRAYS
     //////////////////////////////
     checkCudaErrors(cudaMallocHost(&part->x, sizeof(FPpart)*npmax));
+std::cout << "species " << is << " allocated on cpu " << part->x << std::endl;
     checkCudaErrors(cudaMallocHost(&part->y, sizeof(FPpart)*npmax));
     checkCudaErrors(cudaMallocHost(&part->z, sizeof(FPpart)*npmax));
 
@@ -81,6 +82,7 @@ void particles_positions_alloc_device(struct particles_positions_gpu* part_pos, 
     checkCudaErrors(cudaMalloc(part_pos_ptr, sizeof(particles_positions_gpu)));
 
     checkCudaErrors(cudaMalloc(&part_pos->x, length*sizeof(FPpart)));
+std::cout << "species allocated on gpu " << part_pos->x << " for " << length << std::endl;
     checkCudaErrors(cudaMalloc(&part_pos->y, length*sizeof(FPpart)));
     checkCudaErrors(cudaMalloc(&part_pos->z, length*sizeof(FPpart)));
     checkCudaErrors(cudaMalloc(&part_pos->u, length*sizeof(FPpart)));
@@ -110,6 +112,7 @@ void particles_positions_dealloc_device(struct particles_positions_gpu* part_pos
 void particles_positions_copy_to_device(cudaStream_t* stream, struct particles* particles, struct particles_positions_gpu* part_pos, size_t idx_start_gpu, size_t idx_end_gpu, size_t idx_start_cpu){
 
     size_t num_particles = idx_end_gpu - idx_start_gpu;
+std::cout << "copying " << num_particles << " from CPU (" << particles->x + idx_start_cpu << "," << particles->x + idx_start_cpu + num_particles << ") to GPU (" << part_pos->x + idx_start_gpu << "," << part_pos->x + idx_start_gpu + num_particles << ")" << std::endl;
 
     checkCudaErrors(cudaMemcpyAsync(part_pos->x + idx_start_gpu, particles->x + idx_start_cpu, num_particles*sizeof(FPpart), cudaMemcpyHostToDevice, *stream));
     checkCudaErrors(cudaMemcpyAsync(part_pos->y + idx_start_gpu, particles->y + idx_start_cpu, num_particles*sizeof(FPpart), cudaMemcpyHostToDevice, *stream));
@@ -127,6 +130,7 @@ void particles_positions_copy_to_device(cudaStream_t* stream, struct particles* 
 void particles_positions_copy_to_host(cudaStream_t* stream, struct particles_positions_gpu* part_pos, struct particles* particles, size_t idx_start_gpu, size_t idx_end_gpu, size_t idx_start_cpu){
 
     size_t num_particles = idx_end_gpu - idx_start_gpu;
+std::cout << "copying " << num_particles << " from GPU (" << part_pos->x + idx_start_gpu << "," <<   part_pos->x + idx_start_gpu + num_particles << ")" << " to CPU (" << particles->x + idx_start_cpu << "," << particles->x + idx_start_cpu + num_particles << ") " << std::endl;
 
     checkCudaErrors(cudaMemcpyAsync(particles->x + idx_start_cpu, part_pos->x + idx_start_gpu, num_particles*sizeof(FPpart), cudaMemcpyDeviceToHost, *stream));
     checkCudaErrors(cudaMemcpyAsync(particles->y + idx_start_cpu, part_pos->y + idx_start_gpu, num_particles*sizeof(FPpart), cudaMemcpyDeviceToHost, *stream));
@@ -176,8 +180,7 @@ void particles_info_dealloc_device(struct particles_info_gpu* part_info_gpu_ptr)
  * Batchsize should be a multiple of 512
  * 
  */
-int batch_update_particles(cudaStream_t* stream, struct particles* part_cpu, struct particles_positions_gpu* part_gpu, struct particles_positions_gpu* part_gpu_ptr, struct particles_info_gpu* part_info_gpu_ptr, 
-                                struct EMfield* field_gpu_ptr, struct grid* grd_gpu_ptr, struct interpDensSpecies* ids_gpu_ptr, struct parameters* param_gpu_ptr, int batchsize)
+int batch_update_particles(cudaStream_t* stream, struct particles* part_cpu, struct particles_positions_gpu* part_gpu, struct particles_positions_gpu* part_gpu_ptr, struct particles_info_gpu* part_info_gpu_ptr, struct EMfield* field_gpu_ptr, struct grid* grd_gpu_ptr, struct interpDensSpecies* ids_gpu_ptr, struct parameters* param_gpu_ptr, int batchsize)
 {
 
     // TODO make entire function run on a cuda stream
@@ -195,9 +198,12 @@ int batch_update_particles(cudaStream_t* stream, struct particles* part_cpu, str
         else{
             current_batch = part_cpu->nop-offset_cpu;
         }
+        //std::cout << "batch size " << batchsize << " on stream " << *stream << " part_cpu " << part_cpu << " offset_cpu " << offset_cpu << " part_gpu " << part_gpu << " offset gpu " << offset_gpu << std::endl;
 
+        //std::cout << "copy particle from CPU (" << part_cpu->x+offset_cpu << "," << part_cpu->x+offset_cpu + (current_batch)<< ") to GPU (" << part_gpu->x << "," << part_gpu->x+offset_gpu << ")" << std::endl;
         particles_positions_copy_to_device(stream, part_cpu, part_gpu, offset_gpu, offset_gpu + current_batch, offset_cpu);
         move_and_interpolate<<<(current_batch+THREADS_PER_BLOCK-1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK, 0, *stream>>>(part_gpu_ptr, part_info_gpu_ptr, field_gpu_ptr, grd_gpu_ptr, param_gpu_ptr, ids_gpu_ptr, current_batch);
+        checkCudaErrors(cudaPeekAtLastError());
         particles_positions_copy_to_host(stream, part_gpu, part_cpu, offset_gpu, offset_gpu+current_batch, offset_cpu);
 
         offset_cpu += current_batch;

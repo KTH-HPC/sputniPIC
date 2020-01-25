@@ -8,7 +8,8 @@ int get_appropriate_batch_size(int ns)
     size_t total;
     checkCudaErrors(cudaMemGetInfo (&free, &total));
 
-    int batch_size = (long double)free / 6.0 / sizeof(FPpart);
+    //int batch_size = (long double)free / 6.0 / sizeof(FPpart);
+    int batch_size = THREADS_PER_BLOCK * 4096;
     // total memory needed is num_particles*num_species*6*sizeof(float)
     while(batch_size * sizeof(FPpart) * 6 * ns > (free * 9)/10){
 

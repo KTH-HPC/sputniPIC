@@ -2,11 +2,11 @@
 #define PRECISIONTYPES_H
 
 // precision for particle quanties (position, velocity, ...): choose float or
-// double
-typedef double FPpart;
-// precision for field quantities (Ex, Bx, ...): choose float or double
-typedef double FPfield;
-// precision for interpolated quanties (Ex, Bx, ...): choose float or double
-typedef double FPinterp;
+// float
+typedef float FPpart;
+// precision for field quantities (Ex, Bx, ...): choose float or float
+typedef float FPfield;
+// precision for interpolated quanties (Ex, Bx, ...): choose float or float
+typedef float FPinterp;
 
 #endif
