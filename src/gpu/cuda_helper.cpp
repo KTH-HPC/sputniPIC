@@ -11,7 +11,8 @@ int get_appropriate_batch_size(int ns) {
   // total memory needed is num_particles*num_species*6*sizeof(float)
   while (batch_size * sizeof(FPpart) * 6 * ns > (free * 9) / 10) {
     // Reduce batchsize by half while we are over the memory limit
-    batch_size /= 2;
+    //batch_size /= 2;
+    batch_size = (double)batch_size*0.8;
     if (batch_size < 128) {
       // No memory left, we cannot run this simulation at this time.
       throw "Batch_size too small, GPU out of memory.";
