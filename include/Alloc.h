@@ -1,34 +1,29 @@
 #ifndef Alloc_H
 #define Alloc_H
-#include <cstdio>
 #include <cuda_runtime.h>
+#include <cstdio>
 
-__host__ __device__
- inline long get_idx(long v, long w, long x, long y, long z, long stride_w,
- long stride_x, long stride_y, long stride_z)
-{
-    return stride_x * stride_y * stride_z * w + stride_y * stride_z * x +
-    stride_z * y + z;
+__host__ __device__ inline long get_idx(long v, long w, long x, long y, long z,
+                                        long stride_w, long stride_x,
+                                        long stride_y, long stride_z) {
+  return stride_x * stride_y * stride_z * w + stride_y * stride_z * x +
+         stride_z * y + z;
 }
 
-__host__ __device__
- inline long get_idx(long w, long x, long y, long z, long stride_x, long
- stride_y, long stride_z)
-{
-    return stride_x * stride_y * stride_z * w + stride_y * stride_z * x +
-    stride_z * y + z;
+__host__ __device__ inline long get_idx(long w, long x, long y, long z,
+                                        long stride_x, long stride_y,
+                                        long stride_z) {
+  return stride_x * stride_y * stride_z * w + stride_y * stride_z * x +
+         stride_z * y + z;
 }
 
-__host__ __device__
- inline long get_idx(long x, long y, long z, long stride_y, long stride_z)
-{
-    return stride_y * stride_z * x + stride_z * y + z;
+__host__ __device__ inline long get_idx(long x, long y, long z, long stride_y,
+                                        long stride_z) {
+  return stride_y * stride_z * x + stride_z * y + z;
 }
 
-__host__ __device__
- inline long get_idx(long x, long y, long s1)
-{
-    return x + (y * s1);
+__host__ __device__ inline long get_idx(long x, long y, long s1) {
+  return x + (y * s1);
 }
 
 template <class type>

@@ -15,7 +15,7 @@ delta = 0.5
 
 #  %%%%%%%%%%%%%%%%%%% TIME %%%%%%%%%%%%%%%%%%
 dt = 0.25                    # dt = time step  
-ncycles = 3		     # cycles
+ncycles = 5		     # cycles
 th = 1.0                     # th =   decentering parameter
 c = 1.0                      # c = light speed 
 
@@ -73,7 +73,7 @@ w0 = 0.0065 -0.0325 0.0 0.0
 
 
 # Output for field 
-FieldOutputCycle=10
+FieldOutputCycle=1
 
 # Poisson Correction
 PoissonCorrection=true

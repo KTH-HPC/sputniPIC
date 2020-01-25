@@ -43,7 +43,8 @@ void interp_dens_net_allocate(struct grid *grd, struct interpDensNet *idn);
 void interp_dens_net_deallocate(struct grid *grd, struct interpDensNet *idn);
 
 /** set all the densities to zero */
-void setZeroSpeciesDensities(struct interpDensSpecies *ids, struct grid *grd, int ns);
+void setZeroSpeciesDensities(struct interpDensSpecies *ids, struct grid *grd,
+                             int ns);
 void setZeroNetDensities(struct interpDensNet *idn, struct grid *grd);
 void setZeroDensities(struct interpDensNet *idn, struct interpDensSpecies *ids,
                       struct grid *grd, int ns);
