@@ -1,7 +1,7 @@
 # From https://x.momo86.net/?p=29
 
 CXX=g++
-CXXFLAGS=-DMEMCHECK -std=c++11 -I./include -O3 -g -fopenmp -Wall -Wno-unknown-pragmas
+CXXFLAGS=-DMEMCHECK -std=c++11 -I./include -O3 -g -Xcompiler "-fopenmp -Wall -Wno-unknown-pragmas"
 
 NVCC=nvcc
 # K420, K80, GTX1050Ti, V100
