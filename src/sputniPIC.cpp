@@ -1,6 +1,8 @@
 /** A mixed-precision implicit Particle-in-Cell simulator for heterogeneous
  * systems **/
 
+#include <omp.h>
+
 // Allocator for 2D, 3D and 4D array: chain of pointers
 #include "Alloc.h"
 
@@ -158,6 +160,12 @@ int main(int argc, char** argv) {
   }
   batch_size *= num_devices; /* size computed based on free mem of one device */
 
+#ifdef MEMCHECK
+  std::cout << "CUDA return check: Enabled" << std::endl;
+#else
+  std::cout << "CUDA return check: Enabled" << std::endl;
+#endif
+  std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
   std::cout << "Total number of GPUs: " << num_devices << std::endl;
   std::cout << "Total number of particles: " << np << "; "
             << (np * sizeof(FPpart) * 6) / (1024 * 1024) << " MB of data."
@@ -223,8 +231,6 @@ int main(int argc, char** argv) {
           field_gpu_ptr[device_id], grid_gpu_ptr[device_id], ids_gpu_ptr[is],
           param_gpu_ptr[device_id], batch_size);
 
-      applyBCids_gpu(&streams[is], ids_gpu_ptr[is], grid_gpu_ptr[device_id],
-                     &grd, &param);
       std::cout << "Move and interpolate on gpu " << device_id << " Species "
                 << is << " - " << b << " batches " << std::endl;
     }
@@ -239,6 +245,8 @@ int main(int argc, char** argv) {
       int device_id = (is + num_devices) % num_devices;
       checkCudaErrors(cudaSetDevice(device_id));
       cudaStreamSynchronize(streams[is]);
+      applyBCids_gpu(&streams[is], ids_gpu_ptr[is], grid_gpu_ptr[device_id],
+                     &grd, &param);
     }
 
     // copy back quantities from GPUs
@@ -284,8 +292,8 @@ int main(int argc, char** argv) {
     }
 
     // print dummy zero for interp
-    std::cout << "Cycle " << cycle << " : " << dMover << " 0.0 " << dField << " "
-              << dIO << std::endl;
+    std::cout << "Timing Cycle " << cycle << " : " << dMover << " 0.0 " << dField
+              << " " << dIO << std::endl;
 
   }  // end of one PIC cycle
 
@@ -333,7 +341,6 @@ int main(int argc, char** argv) {
     particles_positions_dealloc_device(&part_positions_gpu[is],
                                        part_positions_gpu_ptr[is]);
   }
-  //  interp_DNet_dealloc_device(&idn_gpu, idn_gpu_ptr);
 
   delete[] ids_gpu;
   delete[] ids_gpu_ptr;
