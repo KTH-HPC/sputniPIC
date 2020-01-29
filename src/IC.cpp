@@ -184,63 +184,63 @@ void save_ic_data(struct EMfield *field, struct EMfield_aux *field_aux, struct g
   size_t ret;
   std::string file_name;
   /* load Bx By Bz and friends */
-  file_name = "./ic_data/Bxn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Bxn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field->Bxn_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Byn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Byn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field->Byn_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Bzn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Bzn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field->Bzn_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Bxc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc);
+  file_name = param->RestartDirName + "/Bxc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field_aux->Bxc_flat, sizeof(FPfield), grd->nxc*grd->nyc*grd->nzc, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Byc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc);
+  file_name = param->RestartDirName + "/Byc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field_aux->Byc_flat, sizeof(FPfield), grd->nxc*grd->nyc*grd->nzc, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Bzc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc);
+  file_name = param->RestartDirName + "/Bzc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field_aux->Bzc_flat, sizeof(FPfield), grd->nxc*grd->nyc*grd->nzc, pFile);
   fclose(pFile);
 
   /* load Ex Ey Ez and friends */
-  file_name = "./ic_data/Exn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Exn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field->Ex_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Eyn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Eyn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field->Ey_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Ezn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Ezn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field->Ez_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Exth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Exth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field_aux->Exth_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Eyth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Eyth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field_aux->Eyth_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Ezth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Ezth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "wb");
   ret = fwrite(field_aux->Ezth_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
@@ -248,54 +248,54 @@ void save_ic_data(struct EMfield *field, struct EMfield_aux *field_aux, struct g
   /* load particle (x,y,z) (u,v,w) q */
   for (int is = 0; is < param->ns; is++) {
     /* load ids rhon, rhoc */
-    file_name = "./ic_data/rhon_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/rhon_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "wb");
     ret = fwrite(ids[is].rhon_flat, sizeof(FPinterp), grd->nxn*grd->nyn*grd->nzn, pFile);
     fclose(pFile);
   
-    file_name = "./ic_data/rhoc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/rhoc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "wb");
     ret = fwrite(ids[is].rhoc_flat, sizeof(FPinterp), grd->nxc*grd->nyc*grd->nzc, pFile);
     fclose(pFile);
 
     /* x */
-    file_name = "./ic_data/x_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/x_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "wb");
     ret = fwrite(part[is].x, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* y */
-    file_name = "./ic_data/y_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/y_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "wb");
     ret = fwrite(part[is].y, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* z */
-    file_name = "./ic_data/z_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/z_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "wb");
     ret = fwrite(part[is].z, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* u */
-    file_name = "./ic_data/u_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/u_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "wb");
     ret = fwrite(part[is].u, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* v */
-    file_name = "./ic_data/v_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/v_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "wb");
     ret = fwrite(part[is].v, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* w */
-    file_name = "./ic_data/w_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/w_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "wb");
     ret = fwrite(part[is].w, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* q */
-    file_name = "./ic_data/q_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/q_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "wb");
     ret = fwrite(part[is].q, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
@@ -310,63 +310,63 @@ void read_ic_data(struct EMfield *field, struct EMfield_aux *field_aux, struct g
   size_t ret;
   std::string file_name;
   /* load Bx By Bz and friends */
-  file_name = "./ic_data/Bxn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Bxn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field->Bxn_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Byn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Byn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field->Byn_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Bzn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Bzn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field->Bzn_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Bxc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc);
+  file_name = param->RestartDirName + "/Bxc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field_aux->Bxc_flat, sizeof(FPfield), grd->nxc*grd->nyc*grd->nzc, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Byc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc);
+  file_name = param->RestartDirName + "/Byc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field_aux->Byc_flat, sizeof(FPfield), grd->nxc*grd->nyc*grd->nzc, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Bzc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc);
+  file_name = param->RestartDirName + "/Bzc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field_aux->Bzc_flat, sizeof(FPfield), grd->nxc*grd->nyc*grd->nzc, pFile);
   fclose(pFile);
 
   /* load Ex Ey Ez and friends */
-  file_name = "./ic_data/Exn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Exn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field->Ex_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Eyn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Eyn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field->Ey_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Ezn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Ezn_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field->Ez_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Exth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Exth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field_aux->Exth_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Eyth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Eyth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field_aux->Eyth_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
 
-  file_name = "./ic_data/Ezth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn);
+  file_name = param->RestartDirName + "/Ezth_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + ".bin";
   pFile = fopen(file_name.c_str(), "rb");
   ret = fread(field_aux->Ezth_flat, sizeof(FPfield), grd->nxn*grd->nyn*grd->nzn, pFile);
   fclose(pFile);
@@ -374,54 +374,54 @@ void read_ic_data(struct EMfield *field, struct EMfield_aux *field_aux, struct g
   /* load particle (x,y,z) (u,v,w) q */
   for (int is = 0; is < param->ns; is++) {
     /* load ids rhon, rhoc */
-    file_name = "./ic_data/rhon_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/rhon_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "rb");
     ret = fread(ids[is].rhon_flat, sizeof(FPinterp), grd->nxn*grd->nyn*grd->nzn, pFile);
     fclose(pFile);
   
-    file_name = "./ic_data/rhoc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/rhoc_" + std::to_string(grd->nxc) + "_" + std::to_string(grd->nyc) + "_" + std::to_string(grd->nzc) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "rb");
     ret = fread(ids[is].rhoc_flat, sizeof(FPinterp), grd->nxc*grd->nyc*grd->nzc, pFile);
     fclose(pFile);
 
     /* x */
-    file_name = "./ic_data/x_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/x_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "rb");
     ret = fread(part[is].x, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* y */
-    file_name = "./ic_data/y_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/y_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "rb");
     ret = fread(part[is].y, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* z */
-    file_name = "./ic_data/z_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/z_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "rb");
     ret = fread(part[is].z, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* u */
-    file_name = "./ic_data/u_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/u_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "rb");
     ret = fread(part[is].u, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* v */
-    file_name = "./ic_data/v_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/v_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "rb");
     ret = fread(part[is].v, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* w */
-    file_name = "./ic_data/w_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/w_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "rb");
     ret = fread(part[is].w, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
 
     /* q */
-    file_name = "./ic_data/q_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax);
+    file_name = param->RestartDirName + "/q_" + std::to_string(grd->nxn) + "_" + std::to_string(grd->nyn) + "_" + std::to_string(grd->nzn) + "_" + std::to_string(is) + "_" + std::to_string(part[is].npmax) + ".bin";
     pFile = fopen(file_name.c_str(), "rb");
     ret = fread(part[is].q, sizeof(FPpart), part[is].npmax, pFile);
     fclose(pFile);
