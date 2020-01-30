@@ -1,5 +1,5 @@
-SaveDirName = data
-RestartDirName = data
+SaveDirName = data_512x256_4_5x5x5
+RestartDirName = data_512x256_4_5x5x5
 
 B0x = 0.0195
 B0y = 0.0

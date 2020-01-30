@@ -46,6 +46,14 @@
 
 #include "gpu/cuda_helper.h"
 
+void update_statistics(double *mean, double *variance, double new_value, long count)
+{
+  double delta = new_value - *mean;
+  *mean += delta / (double)count;
+  double delta2 = new_value - *mean;
+  *variance += delta * delta2;
+}
+
 int main(int argc, char** argv) {
   // Read the inputfile and fill the param structure
   parameters param;
@@ -59,6 +67,8 @@ int main(int argc, char** argv) {
   double iMover, iInterp, iField, iIO, eMover = 0.0, eInterp = 0.0,
                                        eField = 0.0, eIO = 0.0;
   double dMover = 0.0, dInterp = 0.0, dField = 0.0, dIO = 0.0;
+  double avg_mover = 0.0, avg_field = 0.0, avg_IO = 0.0;
+  double stddev_mover = 0.0, stddev_field = 0.0, stddev_IO = 0.0;
 
   int num_devices;
   checkCudaErrors(cudaGetDeviceCount(&num_devices));
@@ -206,6 +216,8 @@ int main(int argc, char** argv) {
     std::cout << "   cycle = " << cycle << std::endl;
     std::cout << "***********************" << std::endl;
 
+    dMover = 0.0; dField = 0.0; dIO = 0.0;
+
     // set to zero the densities - needed for interpolation
     setZeroNetDensities(&idn, &grd);
 
@@ -258,6 +270,7 @@ int main(int argc, char** argv) {
 
     dMover = cpuSecond() - iMover;
     eMover += dMover;  // stop timer for mover
+    update_statistics(&avg_mover, &stddev_mover, dMover, cycle);
 
     // sum over species
     sumOverSpecies(&idn, ids, &grd, param.ns);
@@ -281,6 +294,7 @@ int main(int argc, char** argv) {
 
     dField = cpuSecond() - iField;
     eField += dField;  // stop timer for solvers
+    update_statistics(&avg_field, &stddev_field, dField, cycle);
 
     // write E, B, rho to disk
     if (cycle % param.FieldOutputCycle == 0) {
@@ -289,6 +303,7 @@ int main(int argc, char** argv) {
       VTK_Write_Scalars(cycle, &grd, ids, &idn);
       dIO = (cpuSecond() - iIO);
       eIO += dIO;  // stop timer for interpolation
+      update_statistics(&avg_field, &stddev_field, dField, cycle);
     }
 
     // print dummy zero for interp
@@ -366,6 +381,9 @@ int main(int argc, char** argv) {
   std::cout << "   IO Time / Cycle      (s) = " << eIO / param.ncycles
             << std::endl;
   std::cout << "**************************************" << std::endl;
+  std::cout << "Mover: " << avg_mover << " " << sqrt(stddev_mover / param.ncycles) << std::endl;
+  std::cout << "Field: " << avg_field << " " << sqrt(stddev_field / param.ncycles) << std::endl;
+  std::cout << "IO: " << avg_IO << " " << sqrt(stddev_IO / param.ncycles) << std::endl;
 
   // exit
   return 0;
