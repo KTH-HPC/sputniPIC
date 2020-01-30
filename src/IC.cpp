@@ -1,6 +1,7 @@
 #include "IC.h"
 #include <math.h>
 #include <iostream>
+#include <sys/stat.h>
 
 /** initialize for magnetic reconnection probelm with Harris current sheet */
 void initGEM(struct parameters *param, struct grid *grd, struct EMfield *field,
@@ -27,12 +28,14 @@ void initGEM(struct parameters *param, struct grid *grd, struct EMfield *field,
       std::cout << " BACKGROUND " << std::endl;
   }
   std::cout << "*************************************************" << std::endl;
+  struct stat sb;
 
   if (param->RESTART != true) {
     /////////////////////////////////////////////////
     //////   FIELD AND DENSITY
     /////////////////////////////////////////////////
     // Set the electric field, magnetic field + rhos
+#pragma omp parallel for private(xpert,ypert,exp_pert)
     for (int i = 0; i < grd->nxn; i++)
       for (int j = 0; j < grd->nyn; j++)
         for (int k = 0; k < grd->nzn; k++) {
@@ -108,13 +111,15 @@ void initGEM(struct parameters *param, struct grid *grd, struct EMfield *field,
     double harvest;
     double prob, theta, sign;
     long long counter;
+    unsigned int seed;
     
     // loop over the species
     for (int is = 0; is < param->ns; is++) {
       // set particle counter to zero
       counter = 0;
       // set the seed for random number generator equal to species id
-      srand(is);
+      seed = is;
+      srand(seed);
       for (int i = 1; i < grd->nxc - 1; i++)
         for (int j = 1; j < grd->nyc - 1; j++)
           for (int k = 1; k < grd->nzc - 1; k++)
@@ -170,7 +175,12 @@ void initGEM(struct parameters *param, struct grid *grd, struct EMfield *field,
                 }  // end of one particles initialization
       
       }  // end of species initialization
-    save_ic_data(field, field_aux, grd, ids, part, param);
+    if (stat(param->RestartDirName.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
+      save_ic_data(field, field_aux, grd, ids, part, param);
+    }
+    else {
+      std::cout << "folder " << param->RestartDirName << " does not exist, not recording IC." << std::endl;
+    }
   }
   else {
     read_ic_data(field, field_aux, grd, ids, part, param);
