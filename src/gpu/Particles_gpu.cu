@@ -71,7 +71,7 @@ void particle_deallocate_host(struct particles* part) {
 
 void particles_positions_alloc_device(
     struct particles_positions_gpu* part_pos,
-    struct particles_positions_gpu** part_pos_ptr, int length) {
+    struct particles_positions_gpu** part_pos_ptr, size_t length) {
   checkCudaErrors(cudaMalloc(part_pos_ptr, sizeof(particles_positions_gpu)));
 
   checkCudaErrors(cudaMalloc(&part_pos->x, length * sizeof(FPpart)));

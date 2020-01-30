@@ -32,6 +32,6 @@ inline void checkGpuError(cudaError_t result, char const *const func,
 /**
  * Return an appropriate size for particle batch
  */
-int get_appropriate_batch_size(int ns);
+size_t get_appropriate_batch_size(int ns);
 
 #endif

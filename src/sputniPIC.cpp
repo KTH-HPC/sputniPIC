@@ -149,12 +149,12 @@ int main(int argc, char** argv) {
   particles_positions_gpu** part_positions_gpu_ptr =
       new particles_positions_gpu*[param.ns];
 
-  int np = 0;
+  size_t np = 0;
   for (int is = 0; is < param.ns; is++) {
     np += part[is].nop;
   }
 
-  int batch_size = get_appropriate_batch_size(param.ns);
+  size_t batch_size = get_appropriate_batch_size(param.ns);
   if (batch_size <= 0) {
     return -1;
   }
