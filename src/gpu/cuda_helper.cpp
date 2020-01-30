@@ -2,7 +2,7 @@
 #include "PrecisionTypes.h"
 #include <iostream>
 
-size_t cuda_helper(int ns) {
+size_t get_appropriate_batch_size(int ns) {
   size_t free;
   size_t total;
   checkCudaErrors(cudaMemGetInfo(&free, &total));
