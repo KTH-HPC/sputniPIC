@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
   std::cout << "Allocating "
             << (batch_size * param.ns * sizeof(FPpart) * 6) / (1024 * 1024)
             << " MB of memory for particles on gpu" << std::endl;
-  std::cout << "(batch_size of "
+  std::cout << "batch_size per species of " << batch_size << " ("
             << (batch_size * sizeof(FPpart) * 6) / (1024 * 1024) << " MB)"
             << std::endl;
 
@@ -244,7 +244,7 @@ int main(int argc, char** argv) {
     for (int is = 0; is < param.ns; is++) {
       int device_id = (is + num_devices) % num_devices;
       std::cout << "***  MOVER  ITERATIONS = " << part[is].NiterMover << " - Species "
-              << part[is].species_ID << " ***" << std::endl;
+              << part[is].species_ID << " ***" ;
       checkCudaErrors(cudaSetDevice(device_id));
       setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr[device_id],
                                   &ids_gpu[is], is);
@@ -254,8 +254,8 @@ int main(int argc, char** argv) {
           field_gpu_ptr[device_id], grid_gpu_ptr[device_id], ids_gpu_ptr[is],
           param_gpu_ptr[device_id], batch_size);
 
-      std::cout << "Move and interpolate on gpu " << device_id << " Species "
-                << is << " - " << b << " batches " << std::endl;
+      std::cout << " on gpu " << device_id << " Species "
+                << " - " << b << " batches " << std::endl;
     }
     std::cout << "***********************" << std::endl;
 
