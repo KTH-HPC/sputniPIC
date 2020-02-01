@@ -43,7 +43,7 @@ void field_aux_allocate(struct grid *grd, struct EMfield_aux *field_aux) {
   field_aux->Byc =
       newArr3<FPfield>(&field_aux->Byc_flat, grd->nxc, grd->nyc, grd->nzc);
   field_aux->Bzc =
-      newArr3<FPfield>(&field_aux->Byc_flat, grd->nxc, grd->nyc, grd->nzc);
+      newArr3<FPfield>(&field_aux->Bzc_flat, grd->nxc, grd->nyc, grd->nzc);
 }
 
 /** deallocate */
