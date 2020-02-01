@@ -22,7 +22,7 @@ nyc = 256  # nyc = number of cells - y direction
 ns = 4
 
 # qom = charge to mass ratio for different species */
-qom = -64.0 1.0 -64 1.0
+#qom = -64.0 1.0 -64 1.0
 
 # Initial density (make sure that plasma is neutral)
 rhoINIT = 1.0 1.0 0.1 0.1

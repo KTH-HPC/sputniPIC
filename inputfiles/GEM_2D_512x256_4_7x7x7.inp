@@ -1,5 +1,5 @@
-SaveDirName = data
-RestartDirName = data
+SaveDirName = data_512x256_4_7x7x7
+RestartDirName = data_512x256_4_7x7x7
 
 B0x = 0.0195
 B0y = 0.0
@@ -7,14 +7,14 @@ B0z = 0.0
 delta = 0.5
     
 #  %%%%%%%%%%%%%%%%%%% TIME %%%%%%%%%%%%%%%%%%
-dt = 0.25          # dt = time step   
-ncycles = 10        #2500    # cycles
+dt = 0.2          # dt = time step   
+ncycles =  200 #2500    # cycles
 
 # %%%%%%%%%%%%%%%%%% BOX SIZE %%%%%%%%%%%%%%%
 Lx = 40   # Lx = simulation box length - x direction    
 Ly = 20   # Ly = simulation box length - y direction   
-nxc = 256  # nxc = number of cells - x direction        
-nyc = 128  # nyc = number of cells - y direction 
+nxc = 512  # nxc = number of cells - x direction        
+nyc = 256  # nyc = number of cells - y direction 
 
 
 # %%%%%%%%%%%%%% PARTICLES %%%%%%%%%%%%%%%%%
@@ -25,16 +25,16 @@ ns = 4
 qom = -64.0 1.0 -64 1.0
 
 # Initial density (make sure that plasma is neutral)
-rhoINIT = 1.0 1.0 0.02 0.02
+rhoINIT = 1.0 1.0 0.1 0.1
 
 # TrackParticleID[species] = 1=true, 0=false --> Assign ID to particles 
 TrackParticleID= 0 0 0 0 
 # npcelx = number of particles per cell - Direction X 
-npcelx = 5 5 5 5 
+npcelx = 7 7 7 7 
 # npcely = number of particles per cell - Direction Y */
-npcely = 5 5 5 5 
+npcely = 7 7 7 7 
 # npcelz = number of particles per cell - Direction Z */
-npcelz = 5 5 5 5  
+npcelz = 7 7 7 7 
 
 
 
@@ -54,11 +54,10 @@ w0 = 0.0065 -0.0325 0.0 0.0
 
 
 # Output for field 
-FieldOutputCycle=1
+FieldOutputCycle=200
 
 # Poisson Correction
 PoissonCorrection=true
 
 # SubCycles
 n_sub_cycles = 1
-
