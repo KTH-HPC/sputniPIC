@@ -392,9 +392,9 @@ int main(int argc, char** argv) {
   std::cout << "   IO Time / Cycle      (s) = " << eIO / param.ncycles
             << std::endl;
   std::cout << "**************************************" << std::endl;
-  std::cout << "Mover: " << avg_mover << " " << sqrt(stddev_mover / param.ncycles) << std::endl;
-  std::cout << "Field: " << avg_field << " " << sqrt(stddev_field / param.ncycles) << std::endl;
-  std::cout << "IO: " << avg_IO << " " << sqrt(stddev_IO / param.ncycles) << std::endl;
+  std::cout << "Mover: " << avg_mover << " " << sqrt(stddev_mover / (param.ncycles - 1)) << std::endl;
+  std::cout << "Field: " << avg_field << " " << sqrt(stddev_field / (param.ncycles - 1)) << std::endl;
+  std::cout << "IO: " << avg_IO << " " << sqrt(stddev_IO / (param.ncycles -1)) << std::endl;
 
   // exit
   return 0;
