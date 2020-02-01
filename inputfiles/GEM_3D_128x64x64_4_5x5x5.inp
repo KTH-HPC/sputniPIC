@@ -42,7 +42,7 @@ nzc =  64                   # nzc = number of cells - z direction
 ns = 4
 
 # qom = charge to mass ratio for different species */
-#qom = -64.0 1.0 -64 1.0
+qom = -64.0 1.0 -64 1.0
 
 # Initial density (make sure that plasma is neutral)
 rhoINIT = 1.0 1.0 0.02 0.02
