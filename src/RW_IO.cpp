@@ -336,13 +336,13 @@ void saveParameters(struct parameters *param) {
   my_file.close();
 }
 
-void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field) {
+void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struct parameters *param) {
   // stream file to be opened and managed
   string filename = "E";
   string temp;
   std::stringstream cc;
   cc << cycle;
-  temp = "./data/" + filename + "_" + cc.str();
+  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
 
@@ -383,7 +383,7 @@ void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field) {
   my_fileE.close();
 
   filename = "B";
-  temp = "./data/" + filename + "_" + cc.str();
+  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
   std::ofstream my_file2(temp.c_str());
@@ -417,13 +417,14 @@ void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field) {
 
 void VTK_Write_Scalars(int cycle, struct grid *grd,
                        struct interpDensSpecies *ids,
-                       struct interpDensNet *idn) {
+                       struct interpDensNet *idn,
+                       struct parameters *param) {
   // stream file to be opened and managed
   string filename = "rhoe";
   string temp;
   std::stringstream cc;
   cc << cycle;
-  temp = "./data/" + filename + "_" + cc.str();
+  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
 
@@ -459,7 +460,7 @@ void VTK_Write_Scalars(int cycle, struct grid *grd,
   my_file.close();
 
   filename = "rhoi";
-  temp = "./data/" + filename + "_" + cc.str();
+  temp = param->SaveDirName +"/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
   std::ofstream my_file2(temp.c_str());
@@ -484,7 +485,7 @@ void VTK_Write_Scalars(int cycle, struct grid *grd,
   my_file2.close();
 
   filename = "rho_net";
-  temp = "./data/" + filename + "_" + cc.str();
+  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
   std::ofstream my_file1(temp.c_str());

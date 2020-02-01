@@ -2,6 +2,7 @@
  * systems **/
 
 #include <omp.h>
+#include <sys/stat.h>
 
 // Allocator for 2D, 3D and 4D array: chain of pointers
 #include "Alloc.h"
@@ -61,6 +62,14 @@ int main(int argc, char** argv) {
   readInputFile(&param, argc, argv);
   printParameters(&param);
   saveParameters(&param);
+
+  struct stat sb;
+  if (stat(param.RestartDirName.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
+    std::cout << "Output directory " + param.RestartDirName + " exists." << std::endl;
+  }
+  else {
+    throw std::runtime_error("Output directory " + param.RestartDirName + " does not exists.");
+  }
 
   // Timing variables
   double iStart = cpuSecond();
@@ -234,6 +243,8 @@ int main(int argc, char** argv) {
     // async set zero, move and interp
     for (int is = 0; is < param.ns; is++) {
       int device_id = (is + num_devices) % num_devices;
+      std::cout << "***  MOVER  ITERATIONS = " << part[is].NiterMover << " - Species "
+              << part[is].species_ID << " ***" << std::endl;
       checkCudaErrors(cudaSetDevice(device_id));
       setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr[device_id],
                                   &ids_gpu[is], is);
@@ -299,11 +310,11 @@ int main(int argc, char** argv) {
     // write E, B, rho to disk
     if (cycle % param.FieldOutputCycle == 0) {
       iIO = cpuSecond();
-      VTK_Write_Vectors(cycle, &grd, &field);
-      VTK_Write_Scalars(cycle, &grd, ids, &idn);
+      VTK_Write_Vectors(cycle, &grd, &field, &param);
+      VTK_Write_Scalars(cycle, &grd, ids, &idn, &param);
       dIO = (cpuSecond() - iIO);
       eIO += dIO;  // stop timer for interpolation
-      update_statistics(&avg_field, &stddev_field, dField, cycle);
+      update_statistics(&avg_IO, &stddev_IO, dIO, cycle);
     }
 
     // print dummy zero for interp
