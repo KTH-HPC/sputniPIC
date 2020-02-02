@@ -8,7 +8,7 @@ RestartDirName = data
 
 
 #  %%%%%%%%%%%%%%%%%%% Magnetic Reconnection %%%%%%%%%%%%%%%%%%
-B0x = 0.0097
+B0x = 0.0195
 B0y = 0.00
 B0z = 0.00
 delta = 0.5
