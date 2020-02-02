@@ -1,7 +1,3 @@
-# INPUT FILE for KH instability
-# 2 Species
-
-
 # DIRECTORIES WITHOUT  / at the end !!!!!
 SaveDirName = data_3D
 RestartDirName = data_3D
@@ -15,7 +11,7 @@ delta = 0.5
 
 #  %%%%%%%%%%%%%%%%%%% TIME %%%%%%%%%%%%%%%%%%
 dt = 0.25                    # dt = time step  
-ncycles = 5		     # cycles
+ncycles = 100		     # cycles
 th = 1.0                     # th =   decentering parameter
 c = 1.0                      # c = light speed 
 
