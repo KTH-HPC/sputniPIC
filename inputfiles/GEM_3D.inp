@@ -3,8 +3,8 @@
 
 
 # DIRECTORIES WITHOUT  / at the end !!!!!
-SaveDirName = data
-RestartDirName = data
+SaveDirName = data_3D
+RestartDirName = data_3D
 
 
 #  %%%%%%%%%%%%%%%%%%% Magnetic Reconnection %%%%%%%%%%%%%%%%%%
@@ -44,7 +44,7 @@ ns = 4
 qom = -64.0 1.0 -64 1.0
 
 # Initial density (make sure that plasma is neutral)
-rhoINIT = 1.0 1.0 0.02 0.02
+rhoINIT = 1.0 1.0 0.1 0.1
 
 
 # TrackParticleID[species] = 1=true, 0=false --> Assign ID to particles 
@@ -73,7 +73,7 @@ w0 = 0.0065 -0.0325 0.0 0.0
 
 
 # Output for field 
-FieldOutputCycle=1
+FieldOutputCycle=100
 
 # Poisson Correction
 PoissonCorrection=true
