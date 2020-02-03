@@ -134,6 +134,7 @@ int batch_update_particles(cudaStream_t* stream, struct particles* part_cpu,
                            struct EMfield* field_gpu_ptr,
                            struct grid* grd_gpu_ptr,
                            struct interpDensSpecies* ids_gpu_ptr,
+                           struct parameters* param_cpu,
                            struct parameters* param_gpu_ptr, int batchsize);
 
 /**

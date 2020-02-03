@@ -16,6 +16,8 @@ Ly = 20   # Ly = simulation box length - y direction
 nxc = 256  # nxc = number of cells - x direction        
 nyc = 128  # nyc = number of cells - y direction 
 
+threads_per_block = 256
+number_of_batches = 4
 
 # %%%%%%%%%%%%%% PARTICLES %%%%%%%%%%%%%%%%%
 #    ns = number of species

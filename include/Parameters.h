@@ -23,6 +23,10 @@ struct parameters {
   int NiterMover;
   /** number of particle of subcycles in the mover */
   int n_sub_cycles;
+  /** **/
+  int number_of_batches;
+  /** **/
+  long threads_per_block;
 
   /** simulation box length - X direction   */
   double Lx;

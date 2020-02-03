@@ -4,8 +4,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
-
-#define THREADS_PER_BLOCK 512
+#include "Parameters.h"
 
 #ifdef __INTELLISENSE__
 #include "gpu/intellisence_cuda_intrinsic.h"
@@ -32,6 +31,6 @@ inline void checkGpuError(cudaError_t result, char const *const func,
 /**
  * Return an appropriate size for particle batch
  */
-size_t get_appropriate_batch_size(int ns);
+size_t get_appropriate_batch_size(struct parameters* param);
 
 #endif

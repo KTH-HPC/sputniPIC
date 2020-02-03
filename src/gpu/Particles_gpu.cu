@@ -210,6 +210,7 @@ int batch_update_particles(cudaStream_t* stream, struct particles* part_cpu,
                            struct EMfield* field_gpu_ptr,
                            struct grid* grd_gpu_ptr,
                            struct interpDensSpecies* ids_gpu_ptr,
+                           struct parameters* param_cpu,
                            struct parameters* param_gpu_ptr, int batchsize) {
   // TODO make entire function run on a cuda stream
 
@@ -222,15 +223,15 @@ int batch_update_particles(cudaStream_t* stream, struct particles* part_cpu,
   while (offset_cpu < part_cpu->nop) {
     if (part_cpu->nop - offset_cpu >= batchsize) {
       current_batch = batchsize;
-    } else {
+    } else { 
       current_batch = part_cpu->nop - offset_cpu;
     }
 
     particles_positions_copy_to_device(stream, part_cpu, part_gpu, offset_gpu,
                                        offset_gpu + current_batch, offset_cpu);
-    move_and_interpolate<<<(current_batch + THREADS_PER_BLOCK - 1) /
-                               THREADS_PER_BLOCK,
-                           THREADS_PER_BLOCK, 0, *stream>>>(
+    move_and_interpolate<<<(current_batch + param_cpu->threads_per_block - 1) /
+                               param_cpu->threads_per_block,
+                           param_cpu->threads_per_block, 0, *stream>>>(
         part_gpu_ptr, part_info_gpu_ptr, field_gpu_ptr, grd_gpu_ptr,
         param_gpu_ptr, ids_gpu_ptr, current_batch);
     checkCudaErrors(cudaPeekAtLastError());

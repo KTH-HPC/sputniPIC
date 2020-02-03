@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
     np += part[is].nop;
   }
 
-  size_t batch_size = get_appropriate_batch_size(param.ns);
+  size_t batch_size = get_appropriate_batch_size(&param);
   if (batch_size <= 0) {
     return -1;
   }
@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
           &streams[is], &part[is], &part_positions_gpu[is],
           part_positions_gpu_ptr[is], part_info_gpu_ptr[is],
           field_gpu_ptr[device_id], grid_gpu_ptr[device_id], ids_gpu_ptr[is],
-          param_gpu_ptr[device_id], batch_size);
+          &param, param_gpu_ptr[device_id], batch_size);
 
       std::cout << " on gpu " << device_id << " Species "
                 << " - " << b << " batches " << std::endl;

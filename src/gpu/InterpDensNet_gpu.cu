@@ -138,12 +138,6 @@ void setZeroSpeciesDensities_gpu(cudaStream_t* stream, struct grid* grd,
                                  struct grid* grd_gpu_ptr,
                                  struct interpDensSpecies* ids_gpu_ptr,
                                  int id) {
-  int blocks = (grd->nxn * grd->nyn * grd->nzn + THREADS_PER_BLOCK - 1) /
-               THREADS_PER_BLOCK;
-
-  //    set_zero_species_densities_nodes<<<blocks, THREADS_PER_BLOCK,0,
-  //    *stream>>>(ids_gpu_ptr, grd_gpu_ptr, id);
-  //    checkCudaErrors(cudaPeekAtLastError());
   checkCudaErrors(cudaMemsetAsync(
       ids_gpu_ptr->Jx_flat, 0,
       sizeof(FPinterp) * grd->nxn * grd->nyn * grd->nzn, *stream));
@@ -230,11 +224,12 @@ __global__ void set_zero_species_densities_nodes(struct interpDensSpecies* ids,
 
 void sumOverSpecies_gpu(struct interpDensNet* idn_gpu_ptr,
                         struct interpDensSpecies* ids_gpu_ptr,
-                        struct grid* grd_gpu_ptr, struct grid* grd) {
-  int blocks = (grd->nxn * grd->nyn * grd->nzn + THREADS_PER_BLOCK - 1) /
-               THREADS_PER_BLOCK;
+                        struct grid* grd_gpu_ptr, struct grid* grd,
+                        struct parameters* param) {
+  int blocks = (grd->nxn * grd->nyn * grd->nzn + param->threads_per_block - 1) /
+               param->threads_per_block;
 
-  sum_over_species_gpu<<<blocks, THREADS_PER_BLOCK>>>(idn_gpu_ptr, ids_gpu_ptr,
+  sum_over_species_gpu<<<blocks, param->threads_per_block>>>(idn_gpu_ptr, ids_gpu_ptr,
                                                       grd_gpu_ptr);
 }
 

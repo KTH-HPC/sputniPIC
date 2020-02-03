@@ -53,7 +53,7 @@ __global__ void set_zero_species_densities_nodes(struct interpDensSpecies* ids,
 
 void sumOverSpecies_gpu(struct interpDensNet* idn_gpu_ptr,
                         struct interpDensSpecies* ids_gpu_ptr,
-                        struct grid* grd_gpu_ptr, struct grid* grd);
+                        struct grid* grd_gpu_ptr, struct grid* grd, struct parameters* param);
 
 __global__ void sum_over_species_gpu(struct interpDensNet* idn,
                                      struct interpDensSpecies* ids,
