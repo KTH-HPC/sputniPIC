@@ -5,8 +5,11 @@
 size_t get_appropriate_batch_size(struct parameters* param) {
   size_t free;
   size_t total;
+  int num_devices;
   checkCudaErrors(cudaMemGetInfo(&free, &total));
-  std::cout << "GPU has free memory: " << free << std::endl;
+  checkCudaErrors(cudaGetDeviceCount(&num_devices));
+  std::cout << "GPU has free memory: " << free << "x" << num_devices << std::endl;
+  free = free * num_devices;
 
   size_t batch_size = 0;
   //size_t batch_size = (long double)free / 6.0 / sizeof(FPpart);
