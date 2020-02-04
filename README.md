@@ -82,12 +82,12 @@ Timing Cycle 2 : 4.94224 0.0 2.5049 0
 
 
 ```
-
 ## Output format
 - Every Iterations
- Timing Cycle \<Iterations\> : \<Mover Time\> \<Interp Time\> \<Field Time\> \<IO Time\>
+```Timing Cycle <Iterations> : <Mover Time> <Interp Time> <Field Time> <IO Time>```
 - Finally
-Mover: \<average\> \<standard deviation\>
-Field: \<average\> \<standard deviation\>
-IO: \<average\> \<standard deviation\>
-
+```
+Mover: <average> <standard deviation>
+Field: <average> <standard deviation>
+IO: <average> <standard deviation>
+```
