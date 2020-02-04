@@ -186,6 +186,7 @@ int main(int argc, char** argv) {
 #endif
   std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
   std::cout << "Total number of GPUs: " << num_devices << std::endl;
+  std::cout << "Threads Per Block of GPUs: " << param.threads_per_block << std::endl;
   std::cout << "Total number of particles: " << np << "; "
             << (np * sizeof(FPpart) * 6) / (1024 * 1024) << " MB of data."
             << std::endl;
