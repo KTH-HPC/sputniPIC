@@ -362,13 +362,10 @@ void saveParticlePositions(struct parameters *param, struct particles *part, int
 
   for (size_t p = 0; p < part->npmax; p++) {
     if (part->track_particle[p]) {
-      particlesPosFile << part->x[p] << "," << part->y[p] << "," << sqrt(pow(part->v[p], 2) + pow(part->u[p], 2));
-      if (p != (part->npmax - 1)) {
-        particlesPosFile << ",";  
-      }
+      particlesPosFile << part->x[p] << "," << part->y[p] << "," << sqrt(pow(part->v[p], 2) + pow(part->u[p], 2)) << ",";  
     }
   }
-  particlesPosFile << "" << std::endl;
+  particlesPosFile << std::endl;
 
   particlesPosFile.close();
 }
