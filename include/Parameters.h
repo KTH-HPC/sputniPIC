@@ -28,6 +28,11 @@ struct parameters {
   /** **/
   long threads_per_block;
 
+  /** should particles be tracked **/
+  bool track_particles;
+  /** number of particles to track **/
+  long n_tracked_particles; 
+
   /** simulation box length - X direction   */
   double Lx;
   /** simulation box length - Y direction   */

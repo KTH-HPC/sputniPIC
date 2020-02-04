@@ -53,6 +53,12 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
   param->threads_per_block = config.read<long>("threads_per_block", 64);
 
 
+  /** track particles and write to file **/
+  param->track_particles = config.read<bool>("track_particles", false);
+  /** number of particles to track **/
+  param->n_tracked_particles = config.read<long>("n_tracked_particles", 1000);
+
+
   /** simulation box length - X direction   */
   param->Lx = config.read<double>("Lx", 1);
   ;
@@ -339,6 +345,32 @@ void saveParameters(struct parameters *param) {
   my_file << "---------------------" << std::endl;
 
   my_file.close();
+}
+
+void saveParticlePositions(struct parameters *param, struct particles *part, int cycle) {
+  string path = param->SaveDirName + "/tracked_particles.txt";
+
+  std::ofstream particlesPosFile;
+
+  if (cycle == param->first_cycle_n) {
+    particlesPosFile.open(path.c_str(), std::ofstream::out);
+    particlesPosFile << "x_0, y_0, sqrt(v^2 + u^2)_0, x_1, y_1, sqrt(v^2 + u^2)_1, ..." << std::endl;
+  }
+  else {
+    particlesPosFile.open(path.c_str(), std::ofstream::out | std::ofstream::app);
+  }
+
+  for (size_t p = 0; p < part->npmax; p++) {
+    if (part->track_particle[p]) {
+      particlesPosFile << part->x[p] << "," << part->y[p] << "," << sqrt(pow(part->v[p], 2) + pow(part->u[p], 2));
+      if (p != (part->npmax - 1)) {
+        particlesPosFile << ",";  
+      }
+    }
+  }
+  particlesPosFile << "" << std::endl;
+
+  particlesPosFile.close();
 }
 
 void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struct parameters *param) {

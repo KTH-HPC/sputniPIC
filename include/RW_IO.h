@@ -6,12 +6,16 @@
 #include "InterpDensNet.h"
 #include "InterpDensSpecies.h"
 #include "Parameters.h"
+#include "Particles.h"
 
 /** read the inputfile given via the command line */
 void readInputFile(struct parameters *param, int argc, char **argv);
 
 /** Print Simulation Parameters */
 void printParameters(struct parameters *param);
+
+/** Save particle positions and energy **/
+void saveParticlePositions(struct parameters *param, struct particles *part, int cycle); 
 
 /** Save Simulation Parameters */
 void saveParameters(struct parameters *param);

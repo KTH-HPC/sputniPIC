@@ -55,6 +55,7 @@ void particle_allocate(struct parameters *param, struct particles *part,
   part->q = new FPinterp[npmax];
 
   part->track_particle = new bool[npmax];
+  std::fill_n(part->track_particle, npmax, 0);
 }
 /** deallocate */
 void particle_deallocate(struct particles *part) {

@@ -27,6 +27,9 @@
 #include "Particles.h"
 #include "gpu/Particles_gpu.cuh"
 
+// Particle tracking
+#include "Tracking.h"
+
 // solvers
 #include "MaxwellSolver.h"
 
@@ -117,6 +120,14 @@ int main(int argc, char** argv) {
   // Initialization
   initGEM(&param, &grd, &field, &field_aux, part, ids);
   // initUniform(&param,&grd,&field,&field_aux,part,ids);
+
+  // Find and randomly select particles for tracking.
+  // Currently only selects and tracks particles from
+  // the first species.
+  if (param.track_particles) {
+    find_and_toggle_track_particles(&param, &part[0]);
+  }
+
 
   // ********************** GPU ALLOCATION ********************//
   // Create the parameters on the GPU and copy the data to the device.
@@ -226,6 +237,11 @@ int main(int argc, char** argv) {
     std::cout << "***********************" << std::endl;
 
     dMover = 0.0; dField = 0.0; dIO = 0.0;
+
+    // save positions from tracked particles.
+    if (param.track_particles) {
+      saveParticlePositions(&param, &part[0], cycle);
+    }
 
     // set to zero the densities - needed for interpolation
     setZeroNetDensities(&idn, &grd);
