@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
   if (batch_size <= 0) {
     return -1;
   }
-  batch_size *= num_devices; /* size computed based on free mem of one device */
+//  batch_size /= num_devices; /* size computed based on free mem of one device */
 
 #ifdef MEMCHECK
   std::cout << "CUDA return check: Enabled" << std::endl;

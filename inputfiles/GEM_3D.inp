@@ -2,6 +2,9 @@
 SaveDirName = data_3D
 RestartDirName = data_3D
 
+threads_per_block = 256
+number_of_batches = 16
+
 
 #  %%%%%%%%%%%%%%%%%%% Magnetic Reconnection %%%%%%%%%%%%%%%%%%
 B0x = 0.0195
