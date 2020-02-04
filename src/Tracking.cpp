@@ -11,7 +11,7 @@ void find_and_toggle_track_particles(struct parameters* param,
     FPpart min_y = center_y - box_y;
     FPpart max_y = center_y + box_y;
 
-    std::vector<size_t> particles_in_center(part->npmax / 10); // Estimated number.
+    std::vector<size_t> particles_in_center; // Estimated number.
     // find all particles that are in the center area.
     for (size_t i = 0; i < part->npmax; i++) {
         if (
