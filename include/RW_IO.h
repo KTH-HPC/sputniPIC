@@ -8,6 +8,9 @@
 #include "Parameters.h"
 #include "Particles.h"
 
+#include <string>
+#include <sstream>
+
 /** read the inputfile given via the command line */
 void readInputFile(struct parameters *param, int argc, char **argv);
 

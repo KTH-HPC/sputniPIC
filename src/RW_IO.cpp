@@ -348,7 +348,7 @@ void saveParameters(struct parameters *param) {
 }
 
 void saveParticlePositions(struct parameters *param, struct particles *part, int cycle) {
-  string path = param->SaveDirName + "/tracked_particles.txt";
+  string path = param->SaveDirName + "/tracked_particles.csv";
 
   std::ofstream particlesPosFile;
 
@@ -360,12 +360,15 @@ void saveParticlePositions(struct parameters *param, struct particles *part, int
     particlesPosFile.open(path.c_str(), std::ofstream::out | std::ofstream::app);
   }
 
+  std::ostringstream line;
   for (size_t p = 0; p < part->npmax; p++) {
     if (part->track_particle[p]) {
-      particlesPosFile << part->x[p] << "," << part->y[p] << "," << sqrt(pow(part->v[p], 2) + pow(part->u[p], 2)) << ",";  
+      line << part->x[p] << "," << part->y[p] << "," << sqrt(pow(part->v[p], 2) + pow(part->u[p], 2)) << ",";
     }
   }
-  particlesPosFile << std::endl;
+  line.seekp(-1, line.cur); // Remove trailing comma ","
+  line << std::endl;
+  particlesPosFile << line.str();
 
   particlesPosFile.close();
 }
