@@ -3,7 +3,7 @@
 
 #include <omp.h>
 #include <sys/stat.h>
-
+#include <stdexcept>
 // Allocator for 2D, 3D and 4D array: chain of pointers
 #include "Alloc.h"
 
