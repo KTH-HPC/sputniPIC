@@ -5,7 +5,7 @@ CXXFLAGS=-DMEMCHECK -std=c++11 -I./include -O3 -g -Xcompiler "-fopenmp -Wall -Wn
 
 NVCC=nvcc
 # K420, K80, GTX1050Ti, V100
-ARCH= -gencode arch=compute_30,code=sm_30 -gencode arch=compute_37,code=sm_37 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70
+ARCH= -gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70
 NVCCFLAGS= -lineinfo -I./include $(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wall -Wno-unknown-pragmas" --compiler-bindir=$(CXX)
 
 SRCDIR=src
