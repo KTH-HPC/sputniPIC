@@ -362,7 +362,7 @@ void saveParticlePositions(struct parameters *param, struct particles *part, int
 
   std::ofstream particlesPosFile;
 
-  if (cycle == param->first_cycle_n) {
+  if (cycle == param->tracking_start_cycle) {
     particlesPosFile.open(path.c_str(), std::ofstream::out);
     particlesPosFile << "x_0, y_0, sqrt(v^2 + u^2)_0, x_1, y_1, sqrt(v^2 + u^2)_1, ..." << std::endl;
   }
