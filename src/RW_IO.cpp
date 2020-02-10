@@ -57,7 +57,17 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
   param->track_particles = config.read<bool>("track_particles", false);
   /** number of particles to track **/
   param->n_tracked_particles = config.read<long>("n_tracked_particles", 1000);
-
+  /** start cycle for sampling **/
+  param->tracking_start_cycle = config.read<long>("tracking_start_cycle", 0);
+  /** end cycle for sampling **/
+  param->tracking_end_cycle = config.read<long>("tracking_end_cycle", 0);
+  /** size of tracking sampling box - X direction **/
+  param->tracking_Lx = config.read<double>("tracking_Lx", 1);
+  /** size of tracking sampling box - X direction **/
+  param->tracking_Ly = config.read<double>("tracking_Ly", 1);
+  /** file for saving tracked particles **/
+  param->tracked_particles_filename 
+    = config.read<string>("tracked_particles_filename", "tracked_particles.csv"); 
 
   /** simulation box length - X direction   */
   param->Lx = config.read<double>("Lx", 1);
@@ -348,7 +358,7 @@ void saveParameters(struct parameters *param) {
 }
 
 void saveParticlePositions(struct parameters *param, struct particles *part, int cycle) {
-  string path = param->SaveDirName + "/tracked_particles.csv";
+  string path = param->SaveDirName + "/" + param->tracked_particles_filename;
 
   std::ofstream particlesPosFile;
 
