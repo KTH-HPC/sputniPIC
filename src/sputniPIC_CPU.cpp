@@ -53,6 +53,11 @@ void update_statistics(double *mean, double *variance, double new_value, long co
 int main(int argc, char **argv){
 
     std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
+#ifdef USE_GPU
+    std::cout << "Version: GPU" << std::endl;
+#else
+    std::cout << "Version: CPU" << std::endl;
+#endif
     
     // Read the inputfile and fill the param structure
     parameters param;
