@@ -76,8 +76,8 @@ int main(int argc, char** argv) {
   double iMover, iInterp, iField, iIO, eMover = 0.0, eInterp = 0.0,
                                        eField = 0.0, eIO = 0.0;
   double dMover = 0.0, dInterp = 0.0, dField = 0.0, dIO = 0.0;
-  double avg_mover = 0.0, avg_field = 0.0, avg_IO = 0.0;
-  double stddev_mover = 0.0, stddev_field = 0.0, stddev_IO = 0.0;
+  double avg_mover = 0.0, avg_field = 0.0, avg_interp = 0.0, avg_IO = 0.0;
+  double stddev_mover = 0.0, stddev_field = 0.0, stddev_interp = 0.0, stddev_IO = 0.0;
 
   int num_devices;
   checkCudaErrors(cudaGetDeviceCount(&num_devices));
@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
     std::cout << "   cycle = " << cycle << std::endl;
     std::cout << "***********************" << std::endl;
 
-    dMover = 0.0; dField = 0.0; dIO = 0.0;
+    dMover = 0.0; dInterp = 0.0; dField = 0.0; dIO = 0.0;
 
     // set to zero the densities - needed for interpolation
     setZeroNetDensities(&idn, &grd);
@@ -255,8 +255,7 @@ int main(int argc, char** argv) {
           field_gpu_ptr[device_id], grid_gpu_ptr[device_id], ids_gpu_ptr[is],
           &param, param_gpu_ptr[device_id], batch_size);
 
-      std::cout << " on gpu " << device_id << " Species "
-                << " - " << b << " batches " << std::endl;
+      std::cout << " on gpu " << device_id << " - " << b << " batches " << std::endl;
     }
     std::cout << "***********************" << std::endl;
 
@@ -394,6 +393,7 @@ int main(int argc, char** argv) {
             << std::endl;
   std::cout << "**************************************" << std::endl;
   std::cout << "Mover: " << avg_mover << " " << sqrt(stddev_mover / (param.ncycles - 1)) << std::endl;
+  std::cout << "Interp: " << avg_interp << " " << sqrt(stddev_interp / (param.ncycles - 1)) << std::endl;
   std::cout << "Field: " << avg_field << " " << sqrt(stddev_field / (param.ncycles - 1)) << std::endl;
   std::cout << "IO: " << avg_IO << " " << sqrt(stddev_IO / (param.ncycles -1)) << std::endl;
 

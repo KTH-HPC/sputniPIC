@@ -12,13 +12,8 @@ void particle_allocate(struct parameters *param, struct particles *part,
   part->npmax = param->npMax[is];
 
   // choose a different number of mover iterations for ions and electrons
-  if (param->qom[is] < 0) {  // electrons
-    part->NiterMover = param->NiterMover;
-    part->n_sub_cycles = param->n_sub_cycles;
-  } else {  // ions: only one iteration
-    part->NiterMover = 1;
-    part->n_sub_cycles = 1;
-  }
+  part->NiterMover = param->NiterMover;
+  part->n_sub_cycles = param->n_sub_cycles;
 
   // particles per cell
   part->npcelx = param->npcelx[is];
