@@ -18,7 +18,7 @@ void readInputFile(struct parameters *param, int argc, char **argv);
 void printParameters(struct parameters *param);
 
 /** Save particle positions and energy **/
-void saveParticlePositions(struct parameters *param, struct particles *part, int cycle); 
+void saveParticlePositions(struct parameters *param, struct particles *part, int cycle, int species); 
 
 /** Save Simulation Parameters */
 void saveParameters(struct parameters *param);

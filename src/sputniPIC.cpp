@@ -231,19 +231,22 @@ int main(int argc, char** argv) {
     dMover = 0.0; dField = 0.0; dIO = 0.0;
 
     // Find and randomly select particles for tracking.
-    // Currently only selects and tracks particles from
-    // the first species. Runs once when tracking starts.
+    // Runs once when tracking starts.
     if (param.track_particles && cycle == param.tracking_start_cycle) {
-      find_and_toggle_track_particles(&param, &part[0]);
+      for (int is = 0; is < param.ns; is++) {
+        find_and_toggle_track_particles(&param, &part[is]);
+      }
     }
 
-    // save positions from tracked particles.
+    // Save positions from tracked particles.
     if (param.track_particles 
           && cycle >= param.tracking_start_cycle 
           && cycle <= param.tracking_end_cycle) 
     {
       std::cout << "Saving tracked particles positions." << std::endl;
-      saveParticlePositions(&param, &part[0], cycle);
+      for (int is = 0; is < param.ns; is++) {
+        saveParticlePositions(&param, &part[is], cycle, is);
+      }
     }
 
     // set to zero the densities - needed for interpolation
