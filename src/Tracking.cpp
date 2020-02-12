@@ -22,7 +22,7 @@ void find_and_toggle_track_particles(struct parameters* param,
     particles_in_center.shrink_to_fit();
 
     if (particles_in_center.size() < param->n_tracked_particles) {
-        throw std::runtime_error("Too few particles were sampled for tracking!");
+        std::cerr << "Fewer particles than requested were sampled for tracking!" << std::endl;
     }
 
     // shuffle list of tracked particles.
