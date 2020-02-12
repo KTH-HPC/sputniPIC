@@ -364,7 +364,7 @@ void saveParticlePositions(struct parameters *param, struct particles *part, int
 
   if (cycle == param->tracking_start_cycle) {
     particlesPosFile.open(path.c_str(), std::ofstream::out);
-    particlesPosFile << "x_0, y_0, sqrt(v^2 + u^2)_0, x_1, y_1, sqrt(v^2 + u^2)_1, ..." << std::endl;
+    particlesPosFile << "x_0, y_0, sqrt(v^2 + u^2 + w^2)_0, x_1, y_1, sqrt(v^2 + u^2 + w^2)_1, ..." << std::endl;
   }
   else {
     particlesPosFile.open(path.c_str(), std::ofstream::out | std::ofstream::app);
@@ -373,7 +373,7 @@ void saveParticlePositions(struct parameters *param, struct particles *part, int
   std::ostringstream line;
   for (size_t p = 0; p < part->npmax; p++) {
     if (part->track_particle[p]) {
-      line << part->x[p] << "," << part->y[p] << "," << sqrt(pow(part->v[p], 2) + pow(part->u[p], 2)) << ",";
+      line << part->x[p] << "," << part->y[p] << "," << sqrt(pow(part->v[p], 2) + pow(part->u[p], 2) + pow(part->w[p], 2)) << ",";
     }
   }
   line.seekp(-1, line.cur); // Remove trailing comma ","
