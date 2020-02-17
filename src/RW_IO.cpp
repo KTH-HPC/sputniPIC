@@ -48,14 +48,13 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
   /** number of particle of subcycles in the mover */
   param->n_sub_cycles = config.read<int>("n_sub_cycles", 1);
 
+  /** number of particle batches per species when run on GPU **/
   param->number_of_batches = config.read<int>("number_of_batches", 16);
-
+  /** number of threads per block to use when running kernels on GPU **/
   param->threads_per_block = config.read<long>("threads_per_block", 256);
-
 
   /** simulation box length - X direction   */
   param->Lx = config.read<double>("Lx", 1);
-  ;
   /** simulation box length - Y direction   */
   param->Ly = config.read<double>("Ly", 1);
   /** simulation box length - Z direction   */

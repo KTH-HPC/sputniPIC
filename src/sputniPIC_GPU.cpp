@@ -45,6 +45,7 @@
 // Read and output operations
 #include "RW_IO.h"
 
+// Cuda memcheck and particle batching helper
 #include "gpu/cuda_helper.h"
 
 void update_statistics(double *mean, double *variance, double new_value, long count)
@@ -182,7 +183,7 @@ int main(int argc, char** argv) {
 #ifdef MEMCHECK
   std::cout << "CUDA return check: Enabled" << std::endl;
 #else
-  std::cout << "CUDA return check: Enabled" << std::endl;
+  std::cout << "CUDA return check: Disabled" << std::endl;
 #endif
   std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
   std::cout << "Total number of GPUs: " << num_devices << std::endl;
