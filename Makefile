@@ -1,4 +1,4 @@
-VERSION=CPU
+VERSION=GPU
 
 CXX=g++
 CXXFLAGS=-std=c++11 -I./include -O3 -g -fopenmp -Wall
