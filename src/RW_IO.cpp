@@ -48,10 +48,17 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
   /** number of particle of subcycles in the mover */
   param->n_sub_cycles = config.read<int>("n_sub_cycles", 1);
 
-  param->number_of_batches = config.read<int>("number_of_batches", 2);
+  /** should particles be sorted **/
+  param->sort = config.read<bool>("sort", false);
+  /** sort particles every n iterations **/
+  param->sort_every_n = config.read<long>("sort_every_n", 50);
+  /** number of cells per side in a sorting bin **/
+  param->sort_cps = config.read<long>("sort_cps", 4);
 
-  param->threads_per_block = config.read<long>("threads_per_block", 64);
-
+  /** number of particle batches per species when run on GPU **/
+  param->number_of_batches = config.read<int>("number_of_batches", 16);
+  /** number of threads per block to use when running kernels on GPU **/
+  param->threads_per_block = config.read<long>("threads_per_block", 256);
 
   /** track particles and write to file **/
   param->track_particles = config.read<bool>("track_particles", false);
@@ -71,7 +78,6 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
 
   /** simulation box length - X direction   */
   param->Lx = config.read<double>("Lx", 1);
-  ;
   /** simulation box length - Y direction   */
   param->Ly = config.read<double>("Ly", 1);
   /** simulation box length - Z direction   */

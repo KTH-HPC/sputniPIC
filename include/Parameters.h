@@ -23,9 +23,17 @@ struct parameters {
   int NiterMover;
   /** number of particle of subcycles in the mover */
   int n_sub_cycles;
-  /** **/
+
+  /** should particles be sorted **/
+  bool sort;
+  /** sort particles every n iterations **/
+  long sort_every_n;
+  /** number of cells per side in a sorting bin **/
+  long sort_cps;
+
+  /** split up the particles into n batches for processing on the GPU **/
   int number_of_batches;
-  /** **/
+  /** number of threads that the GPU should run per SM **/
   long threads_per_block;
 
   /** should particles be tracked **/

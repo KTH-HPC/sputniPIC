@@ -3,7 +3,7 @@
 
 #include <omp.h>
 #include <sys/stat.h>
-
+#include <stdexcept>
 // Allocator for 2D, 3D and 4D array: chain of pointers
 #include "Alloc.h"
 
@@ -48,6 +48,7 @@
 // Read and output operations
 #include "RW_IO.h"
 
+// Cuda memcheck and particle batching helper
 #include "gpu/cuda_helper.h"
 
 void update_statistics(double *mean, double *variance, double new_value, long count)
@@ -76,11 +77,13 @@ int main(int argc, char** argv) {
 
   // Timing variables
   double iStart = cpuSecond();
-  double iMover, iInterp, iField, iIO, eMover = 0.0, eInterp = 0.0,
-                                       eField = 0.0, eIO = 0.0;
-  double dMover = 0.0, dInterp = 0.0, dField = 0.0, dIO = 0.0;
-  double avg_mover = 0.0, avg_field = 0.0, avg_IO = 0.0;
-  double stddev_mover = 0.0, stddev_field = 0.0, stddev_IO = 0.0;
+  double iMover, iInterp, iField, iIO, iSort;
+  double eMover = 0.0, eInterp = 0.0, eField = 0.0, eIO = 0.0, eSort = 0.0;
+  double dMover = 0.0, dInterp = 0.0, dField = 0.0, dIO = 0.0, dSort = 0.0;
+  double avg_mover = 0.0, avg_field = 0.0, avg_interp = 0.0, avg_IO = 0.0,
+          avg_sort = 0.0;
+  double stddev_mover = 0.0, stddev_field = 0.0, stddev_interp = 0.0,
+          stddev_IO = 0.0, stddev_sort = 0.0;
 
   int num_devices;
   checkCudaErrors(cudaGetDeviceCount(&num_devices));
@@ -180,15 +183,16 @@ int main(int argc, char** argv) {
   if (batch_size <= 0) {
     return -1;
   }
-  batch_size *= num_devices; /* size computed based on free mem of one device */
+//  batch_size /= num_devices; /* size computed based on free mem of one device */
 
 #ifdef MEMCHECK
   std::cout << "CUDA return check: Enabled" << std::endl;
 #else
-  std::cout << "CUDA return check: Enabled" << std::endl;
+  std::cout << "CUDA return check: Disabled" << std::endl;
 #endif
   std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
   std::cout << "Total number of GPUs: " << num_devices << std::endl;
+  std::cout << "Threads Per Block of GPUs: " << param.threads_per_block << std::endl;
   std::cout << "Total number of particles: " << np << "; "
             << (np * sizeof(FPpart) * 6) / (1024 * 1024) << " MB of data."
             << std::endl;
@@ -228,7 +232,23 @@ int main(int argc, char** argv) {
     std::cout << "   cycle = " << cycle << std::endl;
     std::cout << "***********************" << std::endl;
 
-    dMover = 0.0; dField = 0.0; dIO = 0.0;
+    dMover = 0.0; dInterp = 0.0; dField = 0.0; dIO = 0.0; dSort = 0.0;
+
+    // sort the particles if particle sorting is enabled.
+    iSort = cpuSecond();
+
+    if (param.sort) {
+      if (cycle % param.sort_every_n == 0 && cycle != 0) {
+        std::cout << "Sorting particles." << std::endl;
+        for (int is = 0; is < param.ns; is++) {
+          particle_sort(&param, &part[is], &grd);
+        }
+      }
+    }
+
+    dSort = cpuSecond() - iSort;
+    eSort += dSort;
+    update_statistics(&avg_sort, &stddev_sort, dSort, cycle);
 
     // Find and randomly select particles for tracking.
     // Runs once when tracking starts.
@@ -276,8 +296,7 @@ int main(int argc, char** argv) {
           field_gpu_ptr[device_id], grid_gpu_ptr[device_id], ids_gpu_ptr[is],
           &param, param_gpu_ptr[device_id], batch_size);
 
-      std::cout << " on gpu " << device_id << " Species "
-                << " - " << b << " batches " << std::endl;
+      std::cout << " on gpu " << device_id << " - " << b << " batches " << std::endl;
     }
     std::cout << "***********************" << std::endl;
 
@@ -405,18 +424,17 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
   std::cout << "**************************************" << std::endl;
   std::cout << "   Tot. Simulation Time (s) = " << iElaps << std::endl;
-  std::cout << "   Mover Time / Cycle   (s) = " << eMover / param.ncycles
-            << std::endl;
-  std::cout << "   Interp. Time / Cycle (s) = " << eInterp / param.ncycles
-            << std::endl;
-  std::cout << "   Field Time / Cycle   (s) = " << eField / param.ncycles
-            << std::endl;
-  std::cout << "   IO Time / Cycle      (s) = " << eIO / param.ncycles
-            << std::endl;
+  std::cout << "   Mover Time / Cycle   (s) = " << eMover / param.ncycles << std::endl;
+  std::cout << "   Interp. Time / Cycle (s) = " << eInterp / param.ncycles << std::endl;
+  std::cout << "   Field Time / Cycle   (s) = " << eField / param.ncycles << std::endl;
+  std::cout << "   IO Time / Cycle      (s) = " << eIO / param.ncycles << std::endl;
+  std::cout << "   Sort Time / Cycle    (s) = " << eSort / param.ncycles << std::endl;
   std::cout << "**************************************" << std::endl;
   std::cout << "Mover: " << avg_mover << " " << sqrt(stddev_mover / (param.ncycles - 1)) << std::endl;
+  std::cout << "Interp: " << avg_interp << " " << sqrt(stddev_interp / (param.ncycles - 1)) << std::endl;
   std::cout << "Field: " << avg_field << " " << sqrt(stddev_field / (param.ncycles - 1)) << std::endl;
   std::cout << "IO: " << avg_IO << " " << sqrt(stddev_IO / (param.ncycles -1)) << std::endl;
+  std::cout << "Sorting: " << avg_sort << " " << sqrt(stddev_sort / (param.ncycles - 1)) << std::endl;
 
   // exit
   return 0;

@@ -2,6 +2,15 @@
 SaveDirName = data_3D
 RestartDirName = data_3D
 
+# %%%%%%%%%%%%%%%%%% PERFORMANCE SETTINGS %%%%%%%%%%%%%%%
+# Sort particles to avoid cache misses.
+sort = true
+sort_every_n = 10
+sort_cps = 2       # Number of cells (/side) per sorting bin
+    
+# %%%%%%%%%%%%%%%%%% GPU SETTINGS %%%%%%%%%%%%%%%
+threads_per_block = 256
+number_of_batches = 16
 
 #  %%%%%%%%%%%%%%%%%%% Magnetic Reconnection %%%%%%%%%%%%%%%%%%
 B0x = 0.0195
@@ -11,13 +20,12 @@ delta = 0.5
 
 #  %%%%%%%%%%%%%%%%%%% TIME %%%%%%%%%%%%%%%%%%
 dt = 0.25                    # dt = time step  
-ncycles = 100		     # cycles
+ncycles = 3000		         # cycles
 th = 1.0                     # th =   decentering parameter
 c = 1.0                      # c = light speed 
 
 #  %%%%%%%%%%%%%%%%%%% SMOOTH %%%%%%%%%%%%%%%%%%
 Smooth = 0.5                  # Smoothing value (5-points stencil)
-
 
 # %%%%%%%%%%%%%%%%%% BOX SIZE %%%%%%%%%%%%%%%
 Lx =   20.0                  # Lx = simulation box length - x direction   
@@ -46,11 +54,11 @@ rhoINIT = 1.0 1.0 0.1 0.1
 # TrackParticleID[species] = 1=true, 0=false --> Assign ID to particles 
 TrackParticleID= 0 0 0 0 
 # npcelx = number of particles per cell - Direction X 
-npcelx = 5 5 5 5 
+npcelx = 3 3 3 3
 # npcely = number of particles per cell - Direction Y */
-npcely = 5 5 5 5 
+npcely = 3 3 3 3
 # npcelz = number of particles per cell - Direction Z */
-npcelz = 5 5 5 5 
+npcelz = 3 3 3 3
 
 
 
