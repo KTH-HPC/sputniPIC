@@ -7,6 +7,17 @@ RestartDirName = data_3D
 sort = true
 sort_every_n = 10
 sort_cps = 2       # Number of cells (/side) per sorting bin
+
+# %%%%%%%%%%%%%%%%%% TRACKING SETTINGS %%%%%%%%%%%%%%%
+track_particles = false
+n_tracked_particles = 10000
+# At what cycle should tracking start/end?
+tracking_start_cycle = 1                # Cycles starts at 1!
+tracking_end_cycle = 3000
+# How big should the sampling box be?
+tracking_Lx = 20.0
+tracking_Ly = 10.0
+tracking_Lz = 10.0
     
 # %%%%%%%%%%%%%%%%%% GPU SETTINGS %%%%%%%%%%%%%%%
 threads_per_block = 256

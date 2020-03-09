@@ -70,8 +70,10 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
   param->tracking_end_cycle = config.read<long>("tracking_end_cycle", 0);
   /** size of tracking sampling box - X direction **/
   param->tracking_Lx = config.read<double>("tracking_Lx", 1);
-  /** size of tracking sampling box - X direction **/
+  /** size of tracking sampling box - Y direction **/
   param->tracking_Ly = config.read<double>("tracking_Ly", 1);
+  /** size of tracking sampling box - Z direction **/
+  param->tracking_Lz = config.read<double>("tracking_Lz", 1);
   /** file for saving tracked particles **/
   param->tracked_particles_filename 
     = config.read<string>("tracked_particles_filename", "tracked_particles"); 
@@ -370,7 +372,7 @@ void saveParticlePositions(struct parameters *param, struct particles *part, int
 
   if (cycle == param->tracking_start_cycle) {
     particlesPosFile.open(path.c_str(), std::ofstream::out);
-    particlesPosFile << "x_0, y_0, sqrt(v^2 + u^2 + w^2)_0, x_1, y_1, sqrt(v^2 + u^2 + w^2)_1, ..." << std::endl;
+    particlesPosFile << "x_0, y_0, z_0, u_0, v_0, w_0, x_1, y_1, z_1, u_1, v_1, w_1, ..." << std::endl;
   }
   else {
     particlesPosFile.open(path.c_str(), std::ofstream::out | std::ofstream::app);
@@ -379,7 +381,8 @@ void saveParticlePositions(struct parameters *param, struct particles *part, int
   std::ostringstream line;
   for (size_t p = 0; p < part->npmax; p++) {
     if (part->track_particle[p]) {
-      line << part->x[p] << "," << part->y[p] << "," << sqrt(pow(part->v[p], 2) + pow(part->u[p], 2) + pow(part->w[p], 2)) << ",";
+      line << part->x[p] << "," << part->y[p] << "," << part->z[p] 
+        << "," << part->u[p] << "," << part->v[p] << "," << part->w[p] << ",";
     }
   }
   line.seekp(-1, line.cur); // Remove trailing comma ","

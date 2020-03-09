@@ -46,8 +46,10 @@ struct parameters {
   long tracking_end_cycle;
   /** size of tracking sampling box - X direction **/
   long tracking_Lx;
-  /** size of tracking sampling box - X direction **/
+  /** size of tracking sampling box - Y direction **/
   long tracking_Ly;
+  /** size of tracking sampling box - Z direction **/
+  long tracking_Lz;
   /** file for saving tracked files **/
   std::string tracked_particles_filename; 
 

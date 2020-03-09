@@ -4,10 +4,13 @@ void find_and_toggle_track_particles(struct parameters* param,
                                         struct particles* part) {
     FPpart center_x = param->Lx / 2.0;
     FPpart center_y = param->Ly / 2.0;
+    FPpart center_z = param->Lz / 2.0;
     FPpart min_x = center_x - (param->tracking_Lx / 2.0);
     FPpart max_x = center_x + (param->tracking_Lx / 2.0);
     FPpart min_y = center_y - (param->tracking_Ly / 2.0);
     FPpart max_y = center_y + (param->tracking_Ly / 2.0);
+    FPpart min_z = center_z - (param->tracking_Lz / 2.0);
+    FPpart max_z = center_z + (param->tracking_Lz / 2.0);
 
     std::vector<size_t> particles_in_center;
     // find all particles that are in the center area.
@@ -15,6 +18,7 @@ void find_and_toggle_track_particles(struct parameters* param,
         if (
             part->x[i] > min_x && part->x[i] < max_x
             && part->y[i] > min_y && part->y[i] < max_y
+            && part->z[i] > min_z && part->z[i] < max_z
         ) {
             particles_in_center.push_back(i);
         }
