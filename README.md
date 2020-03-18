@@ -15,7 +15,7 @@ $ make VERSION=CPU
 $ make clean
 $ make -j
 $ mkdir data_3D
-$ ./bin/sputniPIC_GPU.out ./inputfiles/GEM_3D.inp |& tee gpu_results.txt
+$ ./bin/sputniPIC.out ./inputfiles/GEM_3D.inp |& tee gpu_results.txt
 
 -------------------------
 sputniPIC Sim. Parameters
