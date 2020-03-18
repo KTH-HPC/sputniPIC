@@ -1,5 +1,15 @@
 
 # sputniPIC
+## Building
+```bash
+$ git clone https://github.com/steven-chien/sputniPIC.git
+$ cd sputniPIC
+$ make VERSION=GPU
+```
+If you want to use the CPU version, specify version to CPU instead.
+```bash
+$ make VERSION=CPU
+```
 ## Usage
 ```bash
 $ make clean
