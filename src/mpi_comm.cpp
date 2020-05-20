@@ -1,33 +1,25 @@
 #include "mpi_comm.h"
 
 
-// template <typename T>
-// MPI_DATATYPE _mpi_get_datatype(){
-// 	if(typeid(T) == typeid(float)){
-// 		return MPI_FLOAT;
-// 	}
-// 	else if(typeid(T) == typeid(double)){
-// 		return MPI_DOUBLE;
-// 	}
-// 	else{
-// 		printf("Unknown precision type '%s'", typeid(T).name());
-// 		exit(EXIT_FAILURE);
-// 	}
-// }
+template <typename T>
+MPI_Datatype _mpi_get_datatype(){
+	if(typeid(T) == typeid(float)){
+		return MPI_FLOAT;
+	}
+	else if(typeid(T) == typeid(double)){
+		return MPI_DOUBLE;
+	}
+	else{
+		printf("Unknown precision type '%s'", typeid(T).name());
+		exit(EXIT_FAILURE);
+	}
+}
 
 
 void _reduce_copy(FPinterp* array, FPinterp* recv_buf, int length){
 
-	if(typeid(FPinterp) == typeid(float)){
-		MPI_Reduce(array, recv_buf, length, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
-	}
-	else if(typeid(FPinterp) == typeid(double)){
-		MPI_Reduce(array, recv_buf, length, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-	}
-	else{
-		printf("Unknown precision type '%s'", typeid(FPinterp).name());
-		exit(EXIT_FAILURE);
-	}
+	MPI_Datatype type = _mpi_get_datatype<FPinterp>();
+	MPI_Reduce(array, recv_buf, length, type, MPI_SUM, 0, MPI_COMM_WORLD);
 	
 	int rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -41,7 +33,6 @@ void mpi_reduce_densities(struct grid* grd, struct interpDensNet* idn){
 
 	int count = grd->nxn*grd->nyn*grd->nzn;
 	FPinterp* recv_buf = (FPinterp*) malloc(sizeof(FPinterp)*count);
-	// MPI_DATATYPE type = _mpi_get_datatype<FPinterp>();
 
 	_reduce_copy(idn->rhon_flat, recv_buf, count);
 	_reduce_copy(idn->rhoc_flat, recv_buf, grd->nxc*grd->nyc*grd->nzc);
@@ -67,7 +58,6 @@ void mpi_reduce_densities(struct grid* grd, struct interpDensSpecies* ids){
 
 	int count = grd->nxn*grd->nyn*grd->nzn;
 	FPinterp* recv_buf = (FPinterp*) malloc(sizeof(FPinterp)*count);
-	// MPI_DATATYPE type = _mpi_get_datatype<FPinterp>();
 
 	_reduce_copy(ids->rhon_flat, recv_buf, count);
 	_reduce_copy(ids->rhoc_flat, recv_buf, grd->nxc*grd->nyc*grd->nzc);
@@ -92,28 +82,16 @@ void mpi_reduce_densities(struct grid* grd, struct interpDensSpecies* ids){
 void mpi_broadcast_field(struct grid *grd, struct EMfield *field){
 
 	int count = grd->nxn*grd->nyn*grd->nzn;
-	// MPI_DATATYPE type = _mpi_get_datatype<FPinterp>();
-	if(typeid(FPinterp) == typeid(float)){
-		MPI_Bcast(field->Ex_flat, count, MPI_FLOAT, 0, MPI_COMM_WORLD);
-		MPI_Bcast(field->Ey_flat, count, MPI_FLOAT, 0, MPI_COMM_WORLD);
-		MPI_Bcast(field->Ez_flat, count, MPI_FLOAT, 0, MPI_COMM_WORLD);
 
-		MPI_Bcast(field->Bxn_flat, count, MPI_FLOAT, 0, MPI_COMM_WORLD);
-		MPI_Bcast(field->Byn_flat, count, MPI_FLOAT, 0, MPI_COMM_WORLD);
-		MPI_Bcast(field->Bzn_flat, count, MPI_FLOAT, 0, MPI_COMM_WORLD);
-	}
-	else if(typeid(FPinterp) == typeid(double)){
-		MPI_Bcast(field->Ex_flat, count, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		MPI_Bcast(field->Ey_flat, count, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		MPI_Bcast(field->Ez_flat, count, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Datatype type = _mpi_get_datatype<FPinterp>();
 
-		MPI_Bcast(field->Bxn_flat, count, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		MPI_Bcast(field->Byn_flat, count, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		MPI_Bcast(field->Bzn_flat, count, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	}
-	else{
-		printf("Unknown precision type '%s'", typeid(FPinterp).name());
-		exit(EXIT_FAILURE);
-	}
+	MPI_Bcast(field->Ex_flat, count, type, 0, MPI_COMM_WORLD);
+	MPI_Bcast(field->Ey_flat, count, type, 0, MPI_COMM_WORLD);
+	MPI_Bcast(field->Ez_flat, count, type, 0, MPI_COMM_WORLD);
+
+	MPI_Bcast(field->Bxn_flat, count, type, 0, MPI_COMM_WORLD);
+	MPI_Bcast(field->Byn_flat, count, type, 0, MPI_COMM_WORLD);
+	MPI_Bcast(field->Bzn_flat, count, type, 0, MPI_COMM_WORLD);
+
 
 }
