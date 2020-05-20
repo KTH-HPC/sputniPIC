@@ -72,7 +72,7 @@ w0 = 0.0065 -0.0325 0.0 0.0
 
 
 # Output for field 
-FieldOutputCycle=100
+FieldOutputCycle=10
 
 # Poisson Correction
 PoissonCorrection=true

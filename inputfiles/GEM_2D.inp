@@ -8,7 +8,7 @@ delta = 0.5
     
 #  %%%%%%%%%%%%%%%%%%% TIME %%%%%%%%%%%%%%%%%%
 dt = 0.25          # dt = time step   
-ncycles =  10    # cycles
+ncycles =  20    # cycles
 
 # %%%%%%%%%%%%%%%%%% BOX SIZE %%%%%%%%%%%%%%%
 Lx = 40   # Lx = simulation box length - x direction    

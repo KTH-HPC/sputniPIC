@@ -1,11 +1,14 @@
-VERSION=CPU
+VERSION=GPU
 
-CXX=g++
+CXX=mpic++
 CXXFLAGS=-std=c++11 -I./include -O3 -g -fopenmp -Wall
+
+MPIFLAGS= -I/usr/lib/x86_64-linux-gnu/openmpi/include -L/usr/lib/x86_64-linux-gnu/openmpi/lib
 
 NVCC=nvcc
 ARCH=-gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70
-NVCCFLAGS=-DMEMCHECK -DUSE_GPU -lineinfo -I./include $(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wall -Wno-unknown-pragmas" --compiler-bindir=$(CXX)
+NVCCFLAGS=-DMEMCHECK -DUSE_GPU -lineinfo -I./include $(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wall -Wno-unknown-pragmas" --compiler-bindir=$(CXX) $(MPIFLAGS)
+
 
 # Default to use host compiler and flags
 COMPILER=$(CXX)
@@ -14,6 +17,7 @@ TARGET=sputniPIC.out
 SRCDIR=src
 
 # Check go GPU or CPU path
+
 ifeq ($(VERSION), GPU)
     FILES=$(shell find $(SRCDIR) -name '*.cu' -o -name '*.cpp')
     SRCS=$(subst $(SRCDIR)/sputniPIC_CPU.cpp,,${FILES})
