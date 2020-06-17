@@ -1,6 +1,6 @@
 VERSION=CPU
 
-CXX=g++
+CXX=mpicxx
 CXXFLAGS=-std=c++11 -I./include -O3 -g -fopenmp -Wall
 
 NVCC=nvcc

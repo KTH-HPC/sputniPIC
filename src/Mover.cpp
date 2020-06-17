@@ -4,8 +4,8 @@
 int mover_PC(struct particles *part, struct EMfield *field, struct grid *grd,
              struct parameters *param) {
   // print species and subcycling
-  std::cout << "***  MOVER  ITERATIONS = " << part->NiterMover << " - Species "
-            << part->species_ID << " ***" << std::endl;
+  // std::cout << "***  MOVER  ITERATIONS = " << part->NiterMover << " - Species "
+  //           << part->species_ID << " ***" << std::endl;
 
   // auxiliary variables
   FPpart dt_sub_cycling = (FPpart)param->dt / ((double)part->n_sub_cycles);
