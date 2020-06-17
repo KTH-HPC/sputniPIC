@@ -40,40 +40,55 @@
 #include "RW_IO.h"
 
 #include <omp.h>
+#include <mpi.h>
 
-void update_statistics(double *mean, double *variance, double new_value, long count)
-{
-  double delta = new_value - *mean;
-  *mean += delta / (double)count;
-  double delta2 = new_value - *mean;
-  *variance += delta * delta2;
-}
+#include "mpi_comm.h"
+
+
+
+// ====================================================== //
+// Local function declarations
+
+double timer(
+    double *mean, 
+    double *variance, 
+    double *cycle,
+    double start_time,
+    long count);
+
+
+// ====================================================== //
+// Main
 
 
 int main(int argc, char **argv){
 
+
+    // ====================================================== //
+    // Init MPI 
+	int mpi_thread_support;
+	int mpi_rank, mpi_size;
+	MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &mpi_thread_support);
+	MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
-#ifdef USE_GPU
-    std::cout << "Version: GPU" << std::endl;
-#else
-    std::cout << "Version: CPU" << std::endl;
-#endif
     
+
+    // ====================================================== //
     // Read the inputfile and fill the param structure
-    parameters param;
     // Read the input file name from command line
+
+    parameters param;
     readInputFile(&param,argc,argv);
-    printParameters(&param);
-    saveParameters(&param);
-    
-    // Timing variables
-    double iStart = cpuSecond();
-    double iMover, iInterp, iField, iIO, eMover = 0.0, eInterp= 0.0, eField = 0.0, eIO=0.0;
-    double dMover, dInterp, dField, dIO;
-    double avg_mover = 0.0, avg_interp = 0.0, avg_field = 0.0, avg_IO = 0.0;
-    double stddev_mover = 0.0, stddev_interp = 0.0, stddev_field = 0.0, stddev_IO = 0.0;
-    
-    // Set-up the grid information
+    if(!mpi_rank){
+        printParameters(&param);
+        saveParameters(&param);
+    }
+
+    // ====================================================== //
+    // Declare variables and alloc memory
+
+        // Set-up the grid information
     grid grd;
     setGrid(&param, &grd);
     
@@ -82,7 +97,6 @@ int main(int argc, char **argv){
     field_allocate(&grd,&field);
     EMfield_aux field_aux;
     field_aux_allocate(&grd,&field_aux);
-    
     
     // Allocate Interpolated Quantities
     // per species
@@ -99,94 +113,157 @@ int main(int argc, char **argv){
     
     // Allocate Particles
     particles *part = new particles[param.ns];
-    // allocation
+    particles *part_global = new particles[param.ns];
+    
+    // allocation for global particles
+    if(!mpi_rank){
+        for (int is=0; is < param.ns; is++){
+            particle_allocate(&param, &part_global[is], is);
+        }
+    }
+
+    // ====================================================== //
+    // Initialization global system
+
+    if(!mpi_rank){
+        initGEM(&param,&grd,&field,&field_aux,part_global,ids);
+        //initUniform(&params_global,&grd,&field,&field_aux,part_global,ids);
+    }
+
+    // ====================================================== //
+    // Distribute system to slave processors.
+    // We do particle decomposition, shared domain. 
+
+    // Set number of particles per species for local processes
+	for (int i = 0; i < param.ns; i++){
+		//number of particles localy is global number/num mpi processes
+		param.np[i] /= mpi_size;
+		// Maximum number of particles is also divided by num mpi processes,
+		// since we do particle decomposition
+		param.npMax[i] /= mpi_size;
+	}
+
+    // allocation of local particles
     for (int is=0; is < param.ns; is++)
         particle_allocate(&param,&part[is],is);
-       
-    
-    // Initialization
-    initGEM(&param,&grd,&field,&field_aux,part,ids);
-    //initUniform(&param,&grd,&field,&field_aux,part,ids);
+
+    mpi_broadcast_field(&grd, &field);
+    for(int is=0; is<param.ns; is++){
+        mpi_scatter_particles(&part_global[is], &part[is]);
+    }
+
+    // Dealloc global particles array, it is no longer needed
+    if(!mpi_rank){
+        for (int is=0; is < param.ns; is++)
+            particle_deallocate(&part_global[is]);
+    }
+
+
+
+    // ====================================================== //
+    // Timing variables
+    double iStart = MPI_Wtime();
+    double time0 = iStart;
+    // avg, variance and last cycle exec time for mover, interpolation, field solver and io, respectively
+    double average[4] = {0.,0.,0.,0.};
+    double variance[4] = {0.,0.,0.,0.};
+    double cycle_time[4] = {0.,0.,0.,0.};
     
     // **********************************************************//
     // **** Start the Simulation!  Cycle index start from 1  *** //
     // **********************************************************//
     for (int cycle = param.first_cycle_n; cycle < (param.first_cycle_n + param.ncycles); cycle++) {
-        dMover = 0.0; dInterp = 0.0; dField = 0.0; dIO = 0.0;
-        
-        std::cout << std::endl;
-        std::cout << "***********************" << std::endl;
-        std::cout << "   cycle = " << cycle << std::endl;
-        std::cout << "***********************" << std::endl;
-    
-        // set to zero the densities - needed for interpolation
-        setZeroDensities(&idn,ids,&grd,param.ns);
-        
-        
-        
+
+        // ====================================================== //
         // implicit mover
-        iMover = cpuSecond(); // start timer for mover
+
+        if(!mpi_rank){
+            std::cout << std::endl;
+            std::cout << "***********************" << std::endl;
+            std::cout << "   cycle = " << cycle << std::endl;
+            std::cout << "***********************" << std::endl;
+
+            std::cout << "*** Particle Mover ***" << std::endl;
+        }
+
+        time0 = MPI_Wtime();
+
         // #pragma omp parallel for // only if use mover_PC_V
         for (int is=0; is < param.ns; is++)
             mover_PC(&part[is],&field,&grd,&param);
             //mover_PC_V(&part[is],&field,&grd,&param);
             //mover_interp(&part[is], &field, &ids[is],&grd, &param);
-        dMover = (cpuSecond() - iMover);
-        eMover += dMover; // stop timer for mover
-        update_statistics(&avg_mover, &stddev_mover, dMover, cycle);
-        
-        
-        
-        std::cout << "*** INTERPOLATION P2G ***" << std::endl;
+
+        time0 = timer(&average[0], &variance[0], &cycle_time[0], time0, cycle);
+
+        // ====================================================== //
         // interpolation particle to grid
-        iInterp = cpuSecond(); // start timer for the interpolation step
+        if(!mpi_rank)
+            std::cout << "*** INTERPOLATION P2G ***" << std::endl;
+
+        // set to zero the densities - needed for interpolation
+        setZeroDensities(&idn,ids,&grd,param.ns);
+        
         // interpolate species: MAXIMUM parallelism is number of species
         #pragma omp parallel for
-        for (int is=0; is < param.ns; is++)
+        for (int is=0; is < param.ns; is++){
             interpP2G(&part[is],&ids[is],&grd);
-        dInterp = (cpuSecond() - iInterp); // stop timer for interpolation
-        eInterp += dInterp; // stop timer for interpolation
-        update_statistics(&avg_interp, &stddev_interp, dInterp, cycle);
-
-        // apply BC to interpolated densities
-        for (int is=0; is < param.ns; is++)
+            // apply BC to interpolated densities
             applyBCids(&ids[is],&grd,&param);
+        }
         // sum over species
         sumOverSpecies(&idn,ids,&grd,param.ns);
-        // interpolate charge density from center to node
-        applyBCscalarDensN(idn.rhon,&grd,&param);
-        interpN2Cinterp(idn.rhoc,idn.rhon, &grd);
-        // calculate hat functions rhoh and Jxh, Jyh, Jzh
-        calculateHatDensities(&id_aux, &idn, ids, &field, &grd, &param);
-        
-        
-        
-        // Maxwell solver
-        iField = cpuSecond(); // start timer for the interpolation step
-        //  Poisson correction
-        if (param.PoissonCorrection)
-            divergenceCleaning(&grd,&field_aux,&field,&idn,&param);
-        // Calculate E
-        calculateE(&grd,&field_aux,&field,&id_aux,ids,&param);
-        // Calculate B
-        calculateB(&grd,&field_aux,&field,&param);
-        dField = (cpuSecond() - iField); // stop timer for interpolation
-        eField += dField; // stop timer for interpolation
-        update_statistics(&avg_field, &stddev_field, dField, cycle);
-        
-        
-        // write E, B, rho to disk
-        if (cycle%param.FieldOutputCycle==0){
-            iIO = cpuSecond();
-            VTK_Write_Vectors(cycle, &grd,&field, &param);
-            VTK_Write_Scalars(cycle, &grd,ids,&idn, &param);
-            dIO = (cpuSecond() - iIO); // stop timer for interpolation
-            eIO += dIO; // stop timer for interpolation
-            update_statistics(&avg_IO, &stddev_IO, dIO, cycle);
-        }
 
-        std::cout << "Timing Cycle " << cycle << " : " << dMover << " " << dInterp << " " << dField << " " << dIO << std::endl;
-    
+        // MPI communicate densities to master, both net densities and for species
+		mpi_reduce_densities(&grd, &idn);
+		for(int is=0; is<param.ns; is++){
+			mpi_reduce_densities(&grd, &ids[is]);
+		}
+
+        // Update timer for interpolation
+        time0 = timer(&average[1], &variance[1], &cycle_time[1], time0, cycle);
+
+        // ====================================================== //
+        // From here, master calculates new EM field. slaves idle
+
+        if(!mpi_rank){
+            // interpolate charge density from center to node
+            applyBCscalarDensN(idn.rhon,&grd,&param);
+            interpN2Cinterp(idn.rhoc,idn.rhon, &grd);
+
+            // ====================================================== //
+            // Maxwell solver
+
+            // calculate hat functions rhoh and Jxh, Jyh, Jzh
+            calculateHatDensities(&id_aux, &idn, ids, &field, &grd, &param);
+
+            //  Poisson correction
+            if (param.PoissonCorrection)
+                divergenceCleaning(&grd,&field_aux,&field,&idn,&param);
+            
+            calculateE(&grd,&field_aux,&field,&id_aux,ids,&param);
+            calculateB(&grd,&field_aux,&field,&param);
+
+        }
+        // broadcast EM field data from master process to slaves
+        mpi_broadcast_field(&grd, &field);
+        // Update timer for field solver
+        time0 = timer(&average[2], &variance[2], &cycle_time[2], time0, cycle);
+            
+        // ====================================================== //
+        // IO
+        if(!mpi_rank){
+            // write E, B, rho to disk
+            if (cycle%param.FieldOutputCycle==0){
+                VTK_Write_Vectors(cycle, &grd,&field, &param);
+                VTK_Write_Scalars(cycle, &grd,ids,&idn, &param);
+            }
+        }
+        // Update timer for io
+        time0 = timer(&average[3], &variance[3], &cycle_time[3], time0, cycle);
+
+        if(!mpi_rank)
+            std::cout << "Timing Cycle " << cycle << " : " << cycle_time[0] << " " << cycle_time[1] << " " << cycle_time[2] << " " << cycle_time[3] << std::endl;
     }  // end of one PIC cycle
     
     /// Release the resources
@@ -203,28 +280,48 @@ int main(int argc, char **argv){
         particle_deallocate(&part[is]);
     }
     
-    
-    // stop timer
-    double iElaps = cpuSecond() - iStart;
-    
-    // Print timing of simulation
-    std::cout << std::endl;
-    std::cout << "**************************************" << std::endl;
-    std::cout << "   Tot. Simulation Time (s) = " << iElaps << std::endl;
-    std::cout << "   Mover Time / Cycle   (s) = " << eMover/param.ncycles << std::endl;
-    std::cout << "   Interp. Time / Cycle (s) = " << eInterp/param.ncycles  << std::endl;
-    std::cout << "   Field Time / Cycle   (s) = " << eField/param.ncycles  << std::endl;
-    std::cout << "   IO Time / Cycle      (s) = " << eIO/param.ncycles  << std::endl;
-    std::cout << "**************************************" << std::endl;
+    if(!mpi_rank){
+        // stop timer
+        double iElaps = MPI_Wtime() - iStart;
 
-    std::cout << "Mover: " << avg_mover << " " << sqrt(stddev_mover / (param.ncycles - 1)) << std::endl;
-    std::cout << "Interp: " << avg_interp << " " << sqrt(stddev_interp / (param.ncycles - 1)) << std::endl;
-    std::cout << "Field: " << avg_field << " " << sqrt(stddev_field / (param.ncycles - 1)) << std::endl;
-    std::cout << "IO: " << avg_IO << " " << sqrt(stddev_IO / (param.ncycles -1)) << std::endl;
+        // Print timing of simulation
+        std::cout << std::endl;
+        std::cout << "******************************************************" << std::endl;
+        std::cout << "   Tot. Simulation Time (s) = " << iElaps << std::endl;
+        std::cout << "   Mover Time / Cycle   (s) = " << average[0] << "+-" << sqrt(variance[0] / (param.ncycles - 1)) << std::endl;
+        std::cout << "   Interp. Time / Cycle (s) = " << average[1] << "+-" << sqrt(variance[1] / (param.ncycles - 1)) << std::endl;
+        std::cout << "   Field Time / Cycle   (s) = " << average[2] << "+-" << sqrt(variance[2] / (param.ncycles - 1)) << std::endl;
+        std::cout << "   IO Time / Cycle      (s) = " << average[3] << "+-" << sqrt(variance[3] / (param.ncycles - 1)) << std::endl;
+        std::cout << "******************************************************" << std::endl;
+    }
 
-    
+    MPI_Finalize();
     // exit
     return 0;
 }
 
+inline void update_statistics(
+    double *mean, 
+    double *variance, 
+    double new_value, 
+    long count
+    )
+{
+    double delta = new_value - *mean;
+    *mean += delta / (double)count;
+    double delta2 = new_value - *mean;
+    *variance += delta * delta2;
+}
 
+double timer(
+    double *mean, 
+    double *variance, 
+    double *cycle,
+    double start_time,
+    long count)
+{
+    double t = MPI_Wtime();
+    *cycle = t - start_time;
+    update_statistics(mean, variance, *cycle, count);
+    return t;
+}
