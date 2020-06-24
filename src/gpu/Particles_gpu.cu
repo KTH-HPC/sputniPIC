@@ -277,12 +277,12 @@ __device__ void mover_PC_gpu(struct particles_positions_gpu* part_pos,
   FPpart omdtsq, denom, ut, vt, wt, udotb;
 
   // local (to the particle) electric and magnetic field
-  FPfield Exl = 0.0, Eyl = 0.0, Ezl = 0.0, Bxl = 0.0, Byl = 0.0, Bzl = 0.0;
+  /*FPfield*/FPpart Exl = 0.0, Eyl = 0.0, Ezl = 0.0, Bxl = 0.0, Byl = 0.0, Bzl = 0.0;
 
   // interpolation densities
   int ix, iy, iz;
-  FPfield weight[2][2][2];
-  FPfield xi[2], eta[2], zeta[2];
+  /*FPfield*/FPpart weight[2][2][2];
+  /*FPfield*/FPpart xi[2], eta[2], zeta[2];
 
   // intermediate particle position and velocity
   FPpart xptilde, yptilde, zptilde, uptilde, vptilde, wptilde;
@@ -296,22 +296,22 @@ __device__ void mover_PC_gpu(struct particles_positions_gpu* part_pos,
     // calculate the average velocity iteratively
     for (int innter = 0; innter < part_info->NiterMover; innter++) {
       // interpolation G-->P
-      ix = 2 + int((part_pos->x[local_index] - grd->xStart) * grd->invdx);
-      iy = 2 + int((part_pos->y[local_index] - grd->yStart) * grd->invdy);
-      iz = 2 + int((part_pos->z[local_index] - grd->zStart) * grd->invdz);
+      ix = 2 + int((part_pos->x[local_index] - (FPpart)grd->xStart) * (FPpart)grd->invdx);
+      iy = 2 + int((part_pos->y[local_index] - (FPpart)grd->yStart) * (FPpart)grd->invdy);
+      iz = 2 + int((part_pos->z[local_index] - (FPpart)grd->zStart) * (FPpart)grd->invdz);
 
       // calculate weights
       xi[0] = part_pos->x[local_index] -
-              grd->XN_flat[get_idx(ix - 1, iy, iz, grd->nyn, grd->nzn)];
+              (FPpart)grd->XN_flat[get_idx(ix - 1, iy, iz, grd->nyn, grd->nzn)];
       eta[0] = part_pos->y[local_index] -
                grd->YN_flat[get_idx(ix, iy - 1, iz, grd->nyn, grd->nzn)];
       zeta[0] = part_pos->z[local_index] -
-                grd->ZN_flat[get_idx(ix, iy, iz - 1, grd->nyn, grd->nzn)];
-      xi[1] = grd->XN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
+                (FPpart)grd->ZN_flat[get_idx(ix, iy, iz - 1, grd->nyn, grd->nzn)];
+      xi[1] = (FPpart)grd->XN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
               part_pos->x[local_index];
-      eta[1] = grd->YN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
+      eta[1] = (FPpart)grd->YN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
                part_pos->y[local_index];
-      zeta[1] = grd->ZN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
+      zeta[1] = (FPpart)grd->ZN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
                 part_pos->z[local_index];
 
       //#pragma unroll
@@ -320,7 +320,7 @@ __device__ void mover_PC_gpu(struct particles_positions_gpu* part_pos,
         for (int jj = 0; jj < 2; jj++)
           //#pragma unroll
           for (int kk = 0; kk < 2; kk++)
-            weight[ii][jj][kk] = xi[ii] * eta[jj] * zeta[kk] * grd->invVOL;
+            weight[ii][jj][kk] = xi[ii] * eta[jj] * zeta[kk] * (FPpart)grd->invVOL;
 
       // set to zero local electric and magnetic field
       Exl = 0.0, Eyl = 0.0, Ezl = 0.0, Bxl = 0.0, Byl = 0.0, Bzl = 0.0;
@@ -329,22 +329,22 @@ __device__ void mover_PC_gpu(struct particles_positions_gpu* part_pos,
         for (int jj = 0; jj < 2; jj++)
           for (int kk = 0; kk < 2; kk++) {
             Exl += weight[ii][jj][kk] *
-                   field->Ex_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
+                   (FPpart)field->Ex_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
                                           grd->nzn)];
             Eyl += weight[ii][jj][kk] *
-                   field->Ey_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
+                   (FPpart)field->Ey_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
                                           grd->nzn)];
             Ezl += weight[ii][jj][kk] *
-                   field->Ez_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
+                   (FPpart)field->Ez_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
                                           grd->nzn)];
             Bxl += weight[ii][jj][kk] *
-                   field->Bxn_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
+                   (FPpart)field->Bxn_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
                                            grd->nzn)];
             Byl += weight[ii][jj][kk] *
-                   field->Byn_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
+                   (FPpart)field->Byn_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
                                            grd->nzn)];
             Bzl += weight[ii][jj][kk] *
-                   field->Bzn_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
+                   (FPpart)field->Bzn_flat[get_idx(ix - ii, iy - jj, iz - kk, grd->nyn,
                                            grd->nzn)];
           }
 
@@ -393,16 +393,16 @@ __device__ void mover_PC_gpu(struct particles_positions_gpu* part_pos,
 
 __device__ void bc_particles(FPpart* pos, FPpart* vel, bool periodic,
                              double len, int index) {
-  if (pos[index] > len) {
+  if (pos[index] > (FPpart)len) {
     if (periodic) {  // PERIODIC
-      pos[index] = pos[index] - len;
+      pos[index] = pos[index] - (FPpart)len;
     } else {  // REFLECTING BC
       vel[index] = -vel[index];
-      pos[index] = 2 * len - pos[index];
+      pos[index] = 2 * (FPpart)len - pos[index];
     }
   } else if (pos[index] < 0) {
     if (periodic) {  // PERIODIC
-      pos[index] = pos[index] + len;
+      pos[index] = pos[index] + (FPpart)len;
     } else {  // REFLECTING BC
       vel[index] = -vel[index];
       pos[index] = -pos[index];
@@ -419,8 +419,8 @@ __device__ void interpP2G_gpu(struct particles_positions_gpu* part_pos,
   int local_index = blockIdx.x * blockDim.x + threadIdx.x;
 
   // arrays needed for interpolation
-  FPpart weight[2][2][2];
-  FPpart xi[2], eta[2], zeta[2];
+  FPinterp weight[2][2][2];
+  FPinterp xi[2], eta[2], zeta[2];
 
   // index of the cell
   int ix, iy, iz;
@@ -431,18 +431,18 @@ __device__ void interpP2G_gpu(struct particles_positions_gpu* part_pos,
   iz = 2 + int(floor((part_pos->z[local_index] - grd->zStart) * grd->invdz));
 
   // distances from node
-  xi[0] = part_pos->x[local_index] -
-          grd->XN_flat[get_idx(ix - 1, iy, iz, grd->nyn, grd->nzn)];
-  eta[0] = part_pos->y[local_index] -
-           grd->YN_flat[get_idx(ix, iy - 1, iz, grd->nyn, grd->nzn)];
-  zeta[0] = part_pos->z[local_index] -
-            grd->ZN_flat[get_idx(ix, iy, iz - 1, grd->nyn, grd->nzn)];
-  xi[1] = grd->XN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
-          part_pos->x[local_index];
-  eta[1] = grd->YN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
-           part_pos->y[local_index];
-  zeta[1] = grd->ZN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
-            part_pos->z[local_index];
+  xi[0] = (FPinterp)part_pos->x[local_index] -
+          (FPinterp)grd->XN_flat[get_idx(ix - 1, iy, iz, grd->nyn, grd->nzn)];
+  eta[0] = (FPinterp)part_pos->y[local_index] -
+           (FPinterp)grd->YN_flat[get_idx(ix, iy - 1, iz, grd->nyn, grd->nzn)];
+  zeta[0] = (FPinterp)part_pos->z[local_index] -
+            (FPinterp)grd->ZN_flat[get_idx(ix, iy, iz - 1, grd->nyn, grd->nzn)];
+  xi[1] = (FPinterp)grd->XN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
+          (FPinterp)part_pos->x[local_index];
+  eta[1] = (FPinterp)grd->YN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
+           (FPinterp)part_pos->y[local_index];
+  zeta[1] = (FPinterp)grd->ZN_flat[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] -
+            (FPinterp)part_pos->z[local_index];
 
   /**
    * From here on we are modifying shared data with other threads.
@@ -453,8 +453,8 @@ __device__ void interpP2G_gpu(struct particles_positions_gpu* part_pos,
   for (int ii = 0; ii < 2; ii++)
     for (int jj = 0; jj < 2; jj++)
       for (int kk = 0; kk < 2; kk++)
-        weight[ii][jj][kk] = part_pos->q[local_index] * xi[ii] * eta[jj] *
-                             zeta[kk] * grd->invVOL;
+        weight[ii][jj][kk] = (FPinterp)part_pos->q[local_index] * xi[ii] * eta[jj] *
+                             zeta[kk] * (FPinterp)grd->invVOL;
 
   //////////////////////////
   // add charge density
@@ -463,7 +463,7 @@ __device__ void interpP2G_gpu(struct particles_positions_gpu* part_pos,
       for (int kk = 0; kk < 2; kk++)
         atomicAdd(&ids_gpu->rhon_flat[get_idx((ix - ii), (iy - jj), (iz - kk),
                                               grd->nyn, grd->nzn)],
-                  weight[ii][jj][kk] * grd->invVOL);
+                  (FPinterp)weight[ii][jj][kk] * (FPinterp)grd->invVOL);
 
   atomic_add_pressure(part_pos->u[local_index], weight, ids_gpu->Jx_flat,
                       grd->invVOL, ix, iy, iz, grd->nyn, grd->nzn);
@@ -493,18 +493,18 @@ __device__ void interpP2G_gpu(struct particles_positions_gpu* part_pos,
                       grd->nyn, grd->nzn);
 }
 
-__device__ void atomic_add_pressure(FPpart part_dat, FPpart weight[2][2][2],
+__device__ void atomic_add_pressure(FPpart part_dat, FPinterp weight[2][2][2],
                                     FPinterp* ids_arr, FPfield invVOL, int ix,
                                     int iy, int iz, int stride_y,
                                     int stride_z) {
-  FPpart temp[2][2][2];
+  FPinterp temp[2][2][2];
   // #pragma unroll
   for (int ii = 0; ii < 2; ii++)
     //#pragma unroll
     for (int jj = 0; jj < 2; jj++)
       //#pragma unroll
       for (int kk = 0; kk < 2; kk++)
-        temp[ii][jj][kk] = part_dat * weight[ii][jj][kk];
+        temp[ii][jj][kk] = (FPinterp)part_dat * weight[ii][jj][kk];
 
   //#pragma unroll
   for (int ii = 0; ii < 2; ii++)
@@ -514,5 +514,5 @@ __device__ void atomic_add_pressure(FPpart part_dat, FPpart weight[2][2][2],
       for (int kk = 0; kk < 2; kk++)
         atomicAdd(&ids_arr[get_idx((ix - ii), (iy - jj), (iz - kk), stride_y,
                                    stride_z)],
-                  temp[ii][jj][kk] * invVOL);
+                  temp[ii][jj][kk] * (FPinterp)invVOL);
 }
