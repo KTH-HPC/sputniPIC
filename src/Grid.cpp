@@ -185,7 +185,7 @@ void interpN2Cinterp(FPinterp ***vecFieldC, FPinterp ***vecFieldN,
 /** calculate gradient on nodes, given a scalar field defined on central points
  */
 void gradC2N(FPfield ***gradXN, FPfield ***gradYN, FPfield ***gradZN,
-             FPfield ***scFieldC, grid *grd) {
+             float ***scFieldC, grid *grd) {
   // nodes
   int nxn = grd->nxn;
   int nyn = grd->nyn;
@@ -221,6 +221,44 @@ void gradC2N(FPfield ***gradXN, FPfield ***gradYN, FPfield ***gradZN,
                 invdz;
       }
 }
+void gradC2N(FPfield ***gradXN, FPfield ***gradYN, FPfield ***gradZN,
+             double ***scFieldC, grid *grd) {
+  // nodes
+  int nxn = grd->nxn;
+  int nyn = grd->nyn;
+  int nzn = grd->nzn;
+
+  // inv. dx, dy, dz
+  FPfield invdx = grd->invdx;
+  FPfield invdy = grd->invdy;
+  FPfield invdz = grd->invdz;
+
+#pragma omp parallel for
+  for (int i = 1; i < nxn - 1; i++)
+    for (int j = 1; j < nyn - 1; j++)
+#pragma clang loop vectorize(enable)
+      for (int k = 1; k < nzn - 1; k++) {
+        gradXN[i][j][k] =
+            .25 * (scFieldC[i][j][k] - scFieldC[i - 1][j][k]) * invdx +
+            .25 * (scFieldC[i][j][k - 1] - scFieldC[i - 1][j][k - 1]) * invdx +
+            .25 * (scFieldC[i][j - 1][k] - scFieldC[i - 1][j - 1][k]) * invdx +
+            .25 * (scFieldC[i][j - 1][k - 1] - scFieldC[i - 1][j - 1][k - 1]) *
+                invdx;
+        gradYN[i][j][k] =
+            .25 * (scFieldC[i][j][k] - scFieldC[i][j - 1][k]) * invdy +
+            .25 * (scFieldC[i][j][k - 1] - scFieldC[i][j - 1][k - 1]) * invdy +
+            .25 * (scFieldC[i - 1][j][k] - scFieldC[i - 1][j - 1][k]) * invdy +
+            .25 * (scFieldC[i - 1][j][k - 1] - scFieldC[i - 1][j - 1][k - 1]) *
+                invdy;
+        gradZN[i][j][k] =
+            .25 * (scFieldC[i][j][k] - scFieldC[i][j][k - 1]) * invdz +
+            .25 * (scFieldC[i - 1][j][k] - scFieldC[i - 1][j][k - 1]) * invdz +
+            .25 * (scFieldC[i][j - 1][k] - scFieldC[i][j - 1][k - 1]) * invdz +
+            .25 * (scFieldC[i - 1][j - 1][k] - scFieldC[i - 1][j - 1][k - 1]) *
+                invdz;
+      }
+}
+
 
 /** calculate gradient on nodes, given a scalar field defined on central points
  */
@@ -264,8 +302,8 @@ void gradN2C(FPfield ***gradXC, FPfield ***gradYC, FPfield ***gradZC,
 
 /** calculate divergence on central points, given a vector field defined on
  * nodes  */
-void divN2C(FPfield ***divC, FPfield ***vecFieldXN, FPfield ***vecFieldYN,
-            FPfield ***vecFieldZN, grid *grd) {
+void divN2C(float ***divC, float ***vecFieldXN, float ***vecFieldYN,
+            float ***vecFieldZN, grid *grd) {
   // nodes
   int nxc = grd->nxc;
   int nyc = grd->nyc;
@@ -316,6 +354,167 @@ void divN2C(FPfield ***divC, FPfield ***vecFieldXN, FPfield ***vecFieldYN,
         divC[i][j][k] = compX + compY + compZ;
       }
 }
+void divN2C(double ***divC, float ***vecFieldXN, float ***vecFieldYN,
+            float ***vecFieldZN, grid *grd) {
+  // nodes
+  int nxc = grd->nxc;
+  int nyc = grd->nyc;
+  int nzc = grd->nzc;
+
+  // inv. dx, dy, dz
+  FPfield invdx = grd->invdx;
+  FPfield invdy = grd->invdy;
+  FPfield invdz = grd->invdz;
+
+  // three components of field solver
+  FPfield compX;
+  FPfield compY;
+  FPfield compZ;
+
+#pragma omp parallel for private(compX, compY, compZ)
+  for (int i = 1; i < nxc - 1; i++)
+    for (int j = 1; j < nyc - 1; j++)
+#pragma clang loop vectorize(enable)
+      for (int k = 1; k < nzc - 1; k++) {
+        compX = .25 * (vecFieldXN[i + 1][j][k] - vecFieldXN[i][j][k]) * invdx +
+                .25 * (vecFieldXN[i + 1][j][k + 1] - vecFieldXN[i][j][k + 1]) *
+                    invdx +
+                .25 * (vecFieldXN[i + 1][j + 1][k] - vecFieldXN[i][j + 1][k]) *
+                    invdx +
+                .25 *
+                    (vecFieldXN[i + 1][j + 1][k + 1] -
+                     vecFieldXN[i][j + 1][k + 1]) *
+                    invdx;
+        compY = .25 * (vecFieldYN[i][j + 1][k] - vecFieldYN[i][j][k]) * invdy +
+                .25 * (vecFieldYN[i][j + 1][k + 1] - vecFieldYN[i][j][k + 1]) *
+                    invdy +
+                .25 * (vecFieldYN[i + 1][j + 1][k] - vecFieldYN[i + 1][j][k]) *
+                    invdy +
+                .25 *
+                    (vecFieldYN[i + 1][j + 1][k + 1] -
+                     vecFieldYN[i + 1][j][k + 1]) *
+                    invdy;
+        compZ = .25 * (vecFieldZN[i][j][k + 1] - vecFieldZN[i][j][k]) * invdz +
+                .25 * (vecFieldZN[i + 1][j][k + 1] - vecFieldZN[i + 1][j][k]) *
+                    invdz +
+                .25 * (vecFieldZN[i][j + 1][k + 1] - vecFieldZN[i][j + 1][k]) *
+                    invdz +
+                .25 *
+                    (vecFieldZN[i + 1][j + 1][k + 1] -
+                     vecFieldZN[i + 1][j + 1][k]) *
+                    invdz;
+        divC[i][j][k] = compX + compY + compZ;
+      }
+}
+void divN2C(float ***divC, double ***vecFieldXN, double ***vecFieldYN,
+            double ***vecFieldZN, grid *grd) {
+  // nodes
+  int nxc = grd->nxc;
+  int nyc = grd->nyc;
+  int nzc = grd->nzc;
+
+  // inv. dx, dy, dz
+  FPfield invdx = grd->invdx;
+  FPfield invdy = grd->invdy;
+  FPfield invdz = grd->invdz;
+
+  // three components of field solver
+  FPfield compX;
+  FPfield compY;
+  FPfield compZ;
+
+#pragma omp parallel for private(compX, compY, compZ)
+  for (int i = 1; i < nxc - 1; i++)
+    for (int j = 1; j < nyc - 1; j++)
+#pragma clang loop vectorize(enable)
+      for (int k = 1; k < nzc - 1; k++) {
+        compX = .25 * (vecFieldXN[i + 1][j][k] - vecFieldXN[i][j][k]) * invdx +
+                .25 * (vecFieldXN[i + 1][j][k + 1] - vecFieldXN[i][j][k + 1]) *
+                    invdx +
+                .25 * (vecFieldXN[i + 1][j + 1][k] - vecFieldXN[i][j + 1][k]) *
+                    invdx +
+                .25 *
+                    (vecFieldXN[i + 1][j + 1][k + 1] -
+                     vecFieldXN[i][j + 1][k + 1]) *
+                    invdx;
+        compY = .25 * (vecFieldYN[i][j + 1][k] - vecFieldYN[i][j][k]) * invdy +
+                .25 * (vecFieldYN[i][j + 1][k + 1] - vecFieldYN[i][j][k + 1]) *
+                    invdy +
+                .25 * (vecFieldYN[i + 1][j + 1][k] - vecFieldYN[i + 1][j][k]) *
+                    invdy +
+                .25 *
+                    (vecFieldYN[i + 1][j + 1][k + 1] -
+                     vecFieldYN[i + 1][j][k + 1]) *
+                    invdy;
+        compZ = .25 * (vecFieldZN[i][j][k + 1] - vecFieldZN[i][j][k]) * invdz +
+                .25 * (vecFieldZN[i + 1][j][k + 1] - vecFieldZN[i + 1][j][k]) *
+                    invdz +
+                .25 * (vecFieldZN[i][j + 1][k + 1] - vecFieldZN[i][j + 1][k]) *
+                    invdz +
+                .25 *
+                    (vecFieldZN[i + 1][j + 1][k + 1] -
+                     vecFieldZN[i + 1][j + 1][k]) *
+                    invdz;
+        divC[i][j][k] = compX + compY + compZ;
+      }
+}
+void divN2C(double ***divC, double ***vecFieldXN, double ***vecFieldYN,
+            double ***vecFieldZN, grid *grd) {
+  // nodes
+  int nxc = grd->nxc;
+  int nyc = grd->nyc;
+  int nzc = grd->nzc;
+
+  // inv. dx, dy, dz
+  FPfield invdx = grd->invdx;
+  FPfield invdy = grd->invdy;
+  FPfield invdz = grd->invdz;
+
+  // three components of field solver
+  FPfield compX;
+  FPfield compY;
+  FPfield compZ;
+
+#pragma omp parallel for private(compX, compY, compZ)
+  for (int i = 1; i < nxc - 1; i++)
+    for (int j = 1; j < nyc - 1; j++)
+#pragma clang loop vectorize(enable)
+      for (int k = 1; k < nzc - 1; k++) {
+        compX = .25 * (vecFieldXN[i + 1][j][k] - vecFieldXN[i][j][k]) * invdx +
+                .25 * (vecFieldXN[i + 1][j][k + 1] - vecFieldXN[i][j][k + 1]) *
+                    invdx +
+                .25 * (vecFieldXN[i + 1][j + 1][k] - vecFieldXN[i][j + 1][k]) *
+                    invdx +
+                .25 *
+                    (vecFieldXN[i + 1][j + 1][k + 1] -
+                     vecFieldXN[i][j + 1][k + 1]) *
+                    invdx;
+        compY = .25 * (vecFieldYN[i][j + 1][k] - vecFieldYN[i][j][k]) * invdy +
+                .25 * (vecFieldYN[i][j + 1][k + 1] - vecFieldYN[i][j][k + 1]) *
+                    invdy +
+                .25 * (vecFieldYN[i + 1][j + 1][k] - vecFieldYN[i + 1][j][k]) *
+                    invdy +
+                .25 *
+                    (vecFieldYN[i + 1][j + 1][k + 1] -
+                     vecFieldYN[i + 1][j][k + 1]) *
+                    invdy;
+        compZ = .25 * (vecFieldZN[i][j][k + 1] - vecFieldZN[i][j][k]) * invdz +
+                .25 * (vecFieldZN[i + 1][j][k + 1] - vecFieldZN[i + 1][j][k]) *
+                    invdz +
+                .25 * (vecFieldZN[i][j + 1][k + 1] - vecFieldZN[i][j + 1][k]) *
+                    invdz +
+                .25 *
+                    (vecFieldZN[i + 1][j + 1][k + 1] -
+                     vecFieldZN[i + 1][j + 1][k]) *
+                    invdz;
+        divC[i][j][k] = compX + compY + compZ;
+      }
+}
+
+
+
+
+
 
 /** calculate divergence on central points, given a Tensor field defined on
  * nodes  */

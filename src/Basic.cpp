@@ -132,15 +132,7 @@ void scale(FPfield *vect, FPfield alfa, int n) {
 }
 
 /** method to calculate the scalar-vector product */
-void scale(FPfield ***vect, FPfield alfa, int nx, int ny, int nz) {
-#pragma omp parallel for
-  for (int i = 0; i < nx; i++)
-    for (int j = 0; j < ny; j++)
-#pragma clang loop vectorize(enable)
-      for (int k = 0; k < nz; k++) vect[i][j][k] *= alfa;
-}
-/** method to calculate the scalar product */
-void scale(double vect[][2][2], double alfa, int nx, int ny, int nz) {
+void scale(float ***vect, FPfield alfa, int nx, int ny, int nz) {
 #pragma omp parallel for
   for (int i = 0; i < nx; i++)
     for (int j = 0; j < ny; j++)
@@ -148,7 +140,24 @@ void scale(double vect[][2][2], double alfa, int nx, int ny, int nz) {
       for (int k = 0; k < nz; k++) vect[i][j][k] *= alfa;
 }
 /** method to calculate the scalar-vector product */
-void scale(FPfield ***vect1, FPfield ***vect2, FPfield alfa, int nx, int ny,
+void scale(double ***vect, FPfield alfa, int nx, int ny, int nz) {
+#pragma omp parallel for
+  for (int i = 0; i < nx; i++)
+    for (int j = 0; j < ny; j++)
+#pragma clang loop vectorize(enable)
+      for (int k = 0; k < nz; k++) vect[i][j][k] *= alfa;
+}
+
+/** method to calculate the scalar product */
+void scale(FPfield vect[][2][2], double alfa, int nx, int ny, int nz) {
+#pragma omp parallel for
+  for (int i = 0; i < nx; i++)
+    for (int j = 0; j < ny; j++)
+#pragma clang loop vectorize(enable)
+      for (int k = 0; k < nz; k++) vect[i][j][k] *= alfa;
+}
+/** method to calculate the scalar-vector product */
+void scale(FPfield ***vect1, float ***vect2, FPfield alfa, int nx, int ny,
            int nz) {
 #pragma omp parallel for
   for (int i = 0; i < nx; i++)
@@ -156,6 +165,15 @@ void scale(FPfield ***vect1, FPfield ***vect2, FPfield alfa, int nx, int ny,
 #pragma clang loop vectorize(enable)
       for (int k = 0; k < nz; k++) vect1[i][j][k] = vect2[i][j][k] * alfa;
 }
+void scale(FPfield ***vect1, double ***vect2, FPfield alfa, int nx, int ny,
+           int nz) {
+#pragma omp parallel for
+  for (int i = 0; i < nx; i++)
+    for (int j = 0; j < ny; j++)
+#pragma clang loop vectorize(enable)
+      for (int k = 0; k < nz; k++) vect1[i][j][k] = vect2[i][j][k] * alfa;
+}
+
 
 /** method to calculate the scalar-vector product */
 void scale(FPfield *vect1, FPfield *vect2, double alfa, int n) {
@@ -361,6 +379,7 @@ void solver2phys(FPfield ***vectPhys, FPfield *vectSolver, int nx, int ny,
     for (int j = 1; j < ny - 1; j++)
       for (int k = 1; k < nz - 1; k++) vectPhys[i][j][k] = *vectSolver++;
 }
+
 /** method to convert a 1D field in a 3D field not considering guard cells*/
 void solver2phys(FPfield ***vectPhys1, FPfield ***vectPhys2,
                  FPfield ***vectPhys3, FPfield *vectSolver, int nx, int ny,
@@ -375,12 +394,19 @@ void solver2phys(FPfield ***vectPhys1, FPfield ***vectPhys2,
 }
 
 /** method to convert a 3D field in a 1D field not considering guard cells*/
-void phys2solver(FPfield *vectSolver, FPfield ***vectPhys, int nx, int ny,
+void phys2solver(float *vectSolver, FPfield ***vectPhys, int nx, int ny,
                  int nz) {
   for (int i = 1; i < nx - 1; i++)
     for (int j = 1; j < ny - 1; j++)
       for (int k = 1; k < nz - 1; k++) *vectSolver++ = vectPhys[i][j][k];
 }
+void phys2solver(double *vectSolver, FPfield ***vectPhys, int nx, int ny,
+                 int nz) {
+  for (int i = 1; i < nx - 1; i++)
+    for (int j = 1; j < ny - 1; j++)
+      for (int k = 1; k < nz - 1; k++) *vectSolver++ = vectPhys[i][j][k];
+}
+
 /** method to convert a 3D field in a 1D field not considering guard cells*/
 void phys2solver(FPfield *vectSolver, FPfield ***vectPhys1,
                  FPfield ***vectPhys2, FPfield ***vectPhys3, int nx, int ny,

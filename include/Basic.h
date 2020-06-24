@@ -42,11 +42,14 @@ void sum4(double ***vect1, double alfa, double ***vect2, double beta,
 /** method to calculate the scalar-vector product */
 void scale(FPfield *vect, FPfield alfa, int n);
 /** method to calculate the scalar-vector product */
-void scale(FPfield ***vect, FPfield alfa, int nx, int ny, int nz);
+void scale(float ***vect, FPfield alfa, int nx, int ny, int nz);
+void scale(double ***vect, FPfield alfa, int nx, int ny, int nz);
 /** method to calculate the scalar product */
-void scale(double vect[][2][2], double alfa, int nx, int ny, int nz);
+void scale(FPfield vect[][2][2], double alfa, int nx, int ny, int nz);
 /** method to calculate the scalar-vector product */
-void scale(FPfield ***vect1, FPfield ***vect2, FPfield alfa, int nx, int ny,
+void scale(FPfield ***vect1, float ***vect2, FPfield alfa, int nx, int ny,
+           int nz);
+void scale(FPfield ***vect1, double ***vect2, FPfield alfa, int nx, int ny,
            int nz);
 /** method to calculate the scalar-vector product */
 void scale(FPfield *vect1, FPfield *vect2, double alfa, int n);
@@ -117,7 +120,9 @@ void solver2phys(FPfield ***vectPhys1, FPfield ***vectPhys2,
                  int nz);
 
 /** method to convert a 3D field in a 1D field not considering guard cells*/
-void phys2solver(FPfield *vectSolver, FPfield ***vectPhys, int nx, int ny,
+void phys2solver(float *vectSolver, FPfield ***vectPhys, int nx, int ny,
+                 int nz);
+void phys2solver(double *vectSolver, FPfield ***vectPhys, int nx, int ny,
                  int nz);
 /** method to convert a 3D field in a 1D field not considering guard cells*/
 void phys2solver(FPfield *vectSolver, FPfield ***vectPhys1,

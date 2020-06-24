@@ -2,7 +2,7 @@
 #include <math.h>
 #include "Basic.h"
 
-bool CG(FPfield *xkrylov, int xkrylovlen, FPfield *b, int maxit, double tol,
+bool CG(FPfield *xkrylov, int xkrylovlen, FPinterp *b, int maxit, double tol,
         GENERIC_IMAGE FunctionImage, grid *grd) {
   // allocate residual, image, p, b, calculated on central points
   FPfield *r = new FPfield[xkrylovlen];

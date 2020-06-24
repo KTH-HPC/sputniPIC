@@ -10,7 +10,7 @@
 
 /* CG */
 typedef void (*GENERIC_IMAGE)(FPfield *, FPfield *, grid *);
-bool CG(FPfield *xkrylov, int xkrylovlen, FPfield *b, int maxit, double tol,
+bool CG(FPfield *xkrylov, int xkrylovlen, FPinterp *b, int maxit, double tol,
         GENERIC_IMAGE FunctionImage, grid *grd);
 
 /* GMRES */

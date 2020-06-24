@@ -92,7 +92,9 @@ void interpN2Cinterp(FPinterp ***vecFieldC, FPinterp ***vecFieldN,
 /** calculate gradient on nodes, given a scalar field defined on central points
  */
 void gradC2N(FPfield ***gradXN, FPfield ***gradYN, FPfield ***gradZN,
-             FPfield ***scFieldC, grid *grd);
+             float ***scFieldC, grid *grd);
+void gradC2N(FPfield ***gradXN, FPfield ***gradYN, FPfield ***gradZN,
+             double ***scFieldC, grid *grd);
 
 /** calculate gradient on nodes, given a scalar field defined on central points
  */
@@ -101,8 +103,14 @@ void gradN2C(FPfield ***gradXC, FPfield ***gradYC, FPfield ***gradZC,
 
 /** calculate divergence on central points, given a vector field defined on
  * nodes  */
-void divN2C(FPfield ***divC, FPfield ***vecFieldXN, FPfield ***vecFieldYN,
-            FPfield ***vecFieldZN, grid *grd);
+void divN2C(float ***divC, float ***vecFieldXN, float ***vecFieldYN,
+            float ***vecFieldZN, grid *grd);
+void divN2C(double ***divC, float ***vecFieldXN, float ***vecFieldYN,
+            float ***vecFieldZN, grid *grd);
+void divN2C(float ***divC, double ***vecFieldXN, double ***vecFieldYN,
+            double ***vecFieldZN, grid *grd);
+void divN2C(double ***divC, double ***vecFieldXN, double ***vecFieldYN,
+            double ***vecFieldZN, grid *grd);
 
 /** calculate divergence on central points, given a Tensor field defined on
  * nodes  */
