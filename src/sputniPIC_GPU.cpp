@@ -27,6 +27,9 @@
 #include "Particles.h"
 #include "gpu/Particles_gpu.cuh"
 
+// Particle tracking
+#include "Tracking.h"
+
 // solvers
 #include "MaxwellSolver.h"
 
@@ -74,11 +77,13 @@ int main(int argc, char** argv) {
 
   // Timing variables
   double iStart = cpuSecond();
-  double iMover, iInterp, iField, iIO, eMover = 0.0, eInterp = 0.0,
-                                       eField = 0.0, eIO = 0.0;
-  double dMover = 0.0, dInterp = 0.0, dField = 0.0, dIO = 0.0;
-  double avg_mover = 0.0, avg_field = 0.0, avg_interp = 0.0, avg_IO = 0.0;
-  double stddev_mover = 0.0, stddev_field = 0.0, stddev_interp = 0.0, stddev_IO = 0.0;
+  double iMover, iInterp, iField, iIO, iSort;
+  double eMover = 0.0, eInterp = 0.0, eField = 0.0, eIO = 0.0, eSort = 0.0;
+  double dMover = 0.0, dInterp = 0.0, dField = 0.0, dIO = 0.0, dSort = 0.0;
+  double avg_mover = 0.0, avg_field = 0.0, avg_interp = 0.0, avg_IO = 0.0,
+          avg_sort = 0.0;
+  double stddev_mover = 0.0, stddev_field = 0.0, stddev_interp = 0.0,
+          stddev_IO = 0.0, stddev_sort = 0.0;
 
   int num_devices;
   checkCudaErrors(cudaGetDeviceCount(&num_devices));
@@ -227,7 +232,42 @@ int main(int argc, char** argv) {
     std::cout << "   cycle = " << cycle << std::endl;
     std::cout << "***********************" << std::endl;
 
-    dMover = 0.0; dInterp = 0.0; dField = 0.0; dIO = 0.0;
+    dMover = 0.0; dInterp = 0.0; dField = 0.0; dIO = 0.0; dSort = 0.0;
+
+    // sort the particles if particle sorting is enabled.
+    iSort = cpuSecond();
+
+    if (param.sort) {
+      if (cycle % param.sort_every_n == 0 && cycle != 0) {
+        std::cout << "Sorting particles." << std::endl;
+        for (int is = 0; is < param.ns; is++) {
+          particle_sort(&param, &part[is], &grd);
+        }
+      }
+    }
+
+    dSort = cpuSecond() - iSort;
+    eSort += dSort;
+    update_statistics(&avg_sort, &stddev_sort, dSort, cycle);
+
+    // Find and randomly select particles for tracking.
+    // Runs once when tracking starts.
+    if (param.track_particles && cycle == param.tracking_start_cycle) {
+      for (int is = 0; is < param.ns; is++) {
+        find_and_toggle_track_particles(&param, &part[is]);
+      }
+    }
+
+    // Save positions from tracked particles.
+    if (param.track_particles 
+          && cycle >= param.tracking_start_cycle 
+          && cycle <= param.tracking_end_cycle) 
+    {
+      std::cout << "Saving tracked particles positions." << std::endl;
+      for (int is = 0; is < param.ns; is++) {
+        saveParticlePositions(&param, &part[is], cycle, is);
+      }
+    }
 
     // set to zero the densities - needed for interpolation
     setZeroNetDensities(&idn, &grd);
@@ -384,19 +424,17 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
   std::cout << "**************************************" << std::endl;
   std::cout << "   Tot. Simulation Time (s) = " << iElaps << std::endl;
-  std::cout << "   Mover Time / Cycle   (s) = " << eMover / param.ncycles
-            << std::endl;
-  std::cout << "   Interp. Time / Cycle (s) = " << eInterp / param.ncycles
-            << std::endl;
-  std::cout << "   Field Time / Cycle   (s) = " << eField / param.ncycles
-            << std::endl;
-  std::cout << "   IO Time / Cycle      (s) = " << eIO / param.ncycles
-            << std::endl;
+  std::cout << "   Mover Time / Cycle   (s) = " << eMover / param.ncycles << std::endl;
+  std::cout << "   Interp. Time / Cycle (s) = " << eInterp / param.ncycles << std::endl;
+  std::cout << "   Field Time / Cycle   (s) = " << eField / param.ncycles << std::endl;
+  std::cout << "   IO Time / Cycle      (s) = " << eIO / param.ncycles << std::endl;
+  std::cout << "   Sort Time / Cycle    (s) = " << eSort / param.ncycles << std::endl;
   std::cout << "**************************************" << std::endl;
   std::cout << "Mover: " << avg_mover << " " << sqrt(stddev_mover / (param.ncycles - 1)) << std::endl;
   std::cout << "Interp: " << avg_interp << " " << sqrt(stddev_interp / (param.ncycles - 1)) << std::endl;
   std::cout << "Field: " << avg_field << " " << sqrt(stddev_field / (param.ncycles - 1)) << std::endl;
   std::cout << "IO: " << avg_IO << " " << sqrt(stddev_IO / (param.ncycles -1)) << std::endl;
+  std::cout << "Sorting: " << avg_sort << " " << sqrt(stddev_sort / (param.ncycles - 1)) << std::endl;
 
   // exit
   return 0;

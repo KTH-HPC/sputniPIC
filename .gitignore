@@ -49,3 +49,8 @@ vgcore.*
 
 *.nvvp
 *.bin
+*.vscode
+*.tar.bz2
+*.png
+*.m
+*.csv

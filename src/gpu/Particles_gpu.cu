@@ -49,6 +49,10 @@ void particle_allocate_host(struct parameters* param, struct particles* part,
   checkCudaErrors(cudaMallocHost(&part->w, sizeof(FPpart) * npmax));
 
   checkCudaErrors(cudaMallocHost(&part->q, sizeof(FPinterp) * npmax));
+
+  // Allocate 
+  part->track_particle = new bool[npmax];
+  std::fill_n(part->track_particle, npmax, 0);
 }
 
 /** deallocate particles allocated with */
