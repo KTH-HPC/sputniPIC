@@ -5,7 +5,7 @@
 // double
 typedef float FPpart;
 // precision for field quantities (Ex, Bx, ...): choose float or double
-typedef float FPfield;
+typedef double FPfield;
 // precision for interpolated quanties (Ex, Bx, ...): choose float or double
 typedef float FPinterp;
 

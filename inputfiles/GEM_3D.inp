@@ -4,7 +4,8 @@ RestartDirName = data_3D
 
 # %%%%%%%%%%%%%%%%%% PERFORMANCE SETTINGS %%%%%%%%%%%%%%%
 # Sort particles to avoid cache misses.
-sort = true
+#sort = true
+sort = false
 sort_every_n = 10
 sort_cps = 2       # Number of cells (/side) per sorting bin
 
@@ -31,7 +32,7 @@ delta = 0.5
 
 #  %%%%%%%%%%%%%%%%%%% TIME %%%%%%%%%%%%%%%%%%
 dt = 0.25                    # dt = time step  
-ncycles = 3000		         # cycles
+ncycles = 100		         # cycles
 th = 1.0                     # th =   decentering parameter
 c = 1.0                      # c = light speed 
 
@@ -65,11 +66,11 @@ rhoINIT = 1.0 1.0 0.1 0.1
 # TrackParticleID[species] = 1=true, 0=false --> Assign ID to particles 
 TrackParticleID= 0 0 0 0 
 # npcelx = number of particles per cell - Direction X 
-npcelx = 3 3 3 3
+npcelx = 5 5 5 5
 # npcely = number of particles per cell - Direction Y */
-npcely = 3 3 3 3
+npcely = 5 5 5 5
 # npcelz = number of particles per cell - Direction Z */
-npcelz = 3 3 3 3
+npcelz = 5 5 5 5
 
 
 
