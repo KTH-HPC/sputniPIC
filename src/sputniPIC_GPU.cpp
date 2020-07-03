@@ -53,13 +53,17 @@
 // Cuda memcheck and particle batching helper
 #include "gpu/cuda_helper.h"
 
-void update_statistics(double *mean, double *variance, double new_value, long count)
-{
-	double delta = new_value - *mean;
-	*mean += delta / (double)count;
-	double delta2 = new_value - *mean;
-	*variance += delta * delta2;
-}
+
+double timer(
+    double *mean, 
+    double *variance, 
+    double *cycle,
+    double start_time,
+    long count);
+
+// ====================================================== //
+// Main
+
 
 int main(int argc, char** argv) {
 
@@ -69,31 +73,29 @@ int main(int argc, char** argv) {
 	MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
 
-	// Read the inputfile and fill the param structure
-	parameters param;
-	// Read the input file name from command line
-	readInputFile(&param, argc, argv);
-	printParameters(&param);
-	saveParameters(&param);
+    // ====================================================== //
+    // Read the inputfile and fill the param structure
+    // Read the input file name from command line
 
-	struct stat sb;
-	if (stat(param.RestartDirName.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
-		std::cout << "Output directory " + param.RestartDirName + " exists." << std::endl;
+    parameters param;
+    readInputFile(&param,argc,argv);
+    if(!mpi_rank){
+        printParameters(&param);
+        saveParameters(&param);
+    }
+
+	if(!mpi_rank){
+		struct stat sb;
+		if (stat(param.RestartDirName.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
+			std::cout << "Output directory " + param.RestartDirName + " exists." << std::endl;
+		}
+		else {
+			throw std::runtime_error("Output directory " + param.RestartDirName + " does not exists.");
+		}
 	}
-	else {
-		throw std::runtime_error("Output directory " + param.RestartDirName + " does not exists.");
-	}
 
-	// Timing variables
-	double iStart = cpuSecond();
-	double iMover, iInterp, iField, iIO, eMover = 0.0, eInterp = 0.0,
-																			 eField = 0.0, eIO = 0.0;
-	double dMover = 0.0, dInterp = 0.0, dField = 0.0, dIO = 0.0;
-	double avg_mover = 0.0, avg_field = 0.0, avg_interp = 0.0, avg_IO = 0.0;
-	double stddev_mover = 0.0, stddev_field = 0.0, stddev_interp = 0.0, stddev_IO = 0.0;
-
-	int num_devices;
-	checkCudaErrors(cudaGetDeviceCount(&num_devices));
+	// ====================================================== //
+    // Declare variables and alloc memory
 
 	// Set-up the grid information
 	grid grd;
@@ -120,21 +122,62 @@ int main(int argc, char** argv) {
 	interpDens_aux id_aux;
 	interp_dens_aux_allocate(&grd, &id_aux);
 
-	// Allocate Particles
-	particles* part = new particles[param.ns];
-	// allocation
-	for (int is = 0; is < param.ns; is++) {
-		//TODO: This is an ugly hack for now...
-		// param.np[is] /= mpi_size;
-		particle_allocate_host(&param, &part[is], is);
+    // Allocate Particles
+    particles *part = new particles[param.ns];
+    particles *part_global = new particles[param.ns];
+    
+    // allocation for global particles
+    if(!mpi_rank){
+        for (int is=0; is < param.ns; is++){
+            particle_allocate(&param, &part_global[is], is);
+        }
+    }
+
+    // ====================================================== //
+    // Initialization global system
+
+    if(!mpi_rank){
+        initGEM(&param,&grd,&field,&field_aux,part_global,ids);
+        //initUniform(&params_global,&grd,&field,&field_aux,part_global,ids);
+    }
+
+    // ====================================================== //
+    // Distribute system to slave processors.
+    // We do particle decomposition, shared domain. 
+
+    // Set number of particles per species for local processes
+	for (int i = 0; i < param.ns; i++){
+		//number of particles localy is global number/num mpi processes
+		param.np[i] /= mpi_size;
+		// Maximum number of particles is also divided by num mpi processes,
+		// since we do particle decomposition
+		param.npMax[i] /= mpi_size;
 	}
 
-	// Initialization
-	initGEM(&param, &grd, &field, &field_aux, part, ids);
-	// initUniform(&param,&grd,&field,&field_aux,part,ids);
+    // allocation of local particles
+    for (int is=0; is < param.ns; is++)
+		// Allocate local particles in pinned memory
+        particle_allocate_host(&param,&part[is],is);
+
+    mpi_broadcast_field(&grd, &field);
+    for(int is=0; is<param.ns; is++){
+        mpi_scatter_particles(&part_global[is], &part[is]);
+    }
+
+    // Dealloc global particles array, it is no longer needed
+    if(!mpi_rank){
+        for (int is=0; is < param.ns; is++)
+            particle_deallocate(&part_global[is]);
+    }
+
 
 	// ********************** GPU ALLOCATION ********************//
 	// Create the parameters on the GPU and copy the data to the device.
+
+	// Get number of gpu devices
+	int num_devices;
+	checkCudaErrors(cudaGetDeviceCount(&num_devices));
+
 	parameters* param_gpu_ptr[num_devices] = {nullptr};
 	for (int device_id = 0; device_id < num_devices; device_id++) {
 		checkCudaErrors(cudaSetDevice(device_id));
@@ -147,7 +190,7 @@ int main(int argc, char** argv) {
 	for (int device_id = 0; device_id < num_devices; device_id++) {
 		checkCudaErrors(cudaSetDevice(device_id));
 		grid_alloc_and_copy_to_device(&grd, &grid_gpu[device_id],
-																	&grid_gpu_ptr[device_id]);
+										&grid_gpu_ptr[device_id]);
 	}
 
 	// Create the electromagnetic field on the GPU and copy the data to the
@@ -156,8 +199,10 @@ int main(int argc, char** argv) {
 	EMfield* field_gpu_ptr[num_devices] = {nullptr};
 	for (int device_id = 0; device_id < num_devices; device_id++) {
 		checkCudaErrors(cudaSetDevice(device_id));
-		field_alloc_and_copy_to_device(&grd, &field_gpu[device_id], &field,
-																	 &field_gpu_ptr[device_id]);
+		field_alloc_and_copy_to_device(&grd, 
+										&field_gpu[device_id], 
+										&field,
+										&field_gpu_ptr[device_id]);
 	}
 
 	// Create interpolated quantities on the GPU and and copy the data to the
@@ -169,7 +214,7 @@ int main(int argc, char** argv) {
 		checkCudaErrors(cudaSetDevice(device_id));
 		// Init and copy data here.
 		interp_DS_alloc_and_copy_to_device(&ids[is], &ids_gpu[is], &ids_gpu_ptr[is],
-																			 &grd);
+											&grd);
 	}
 
 	// Create particle information on the GPU and copy the data to the device.
@@ -193,31 +238,6 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 //  batch_size /= num_devices; /* size computed based on free mem of one device */
-
-	if(mpi_rank == 0){
-
-	#ifdef MEMCHECK
-		std::cout << "CUDA return check: Enabled" << std::endl;
-	#else
-		std::cout << "CUDA return check: Disabled" << std::endl;
-	#endif
-		std::cout << "Total number of MPI ranks: " << mpi_size << std::endl;
-		std::cout << "Number of cores per rank: " << omp_get_max_threads() << std::endl;
-		std::cout << "Number of GPUs per rank: " << num_devices << std::endl;
-		std::cout << "Threads Per Block of GPUs: " << param.threads_per_block << std::endl;
-		std::cout << "Total number of particles: " << np*mpi_size << std::endl;
-		std::cout << "Number of particles per rank: " << np << "; "
-							<< (np * sizeof(FPpart) * 6) / (1024 * 1024) << " MB of data"
-							<< std::endl;
-		std::cout << "Allocating "
-							<< (batch_size * param.ns * sizeof(FPpart) * 6) / (1024 * 1024)
-							<< " MB of memory for particles on gpu" << std::endl;
-		std::cout << "batch_size per species of " << batch_size << " ("
-							<< (batch_size * sizeof(FPpart) * 6) / (1024 * 1024) << " MB)"
-							<< std::endl;
-	}
-
-	 
 
 	// allocate field and copy to GPUs
 	for (int is = 0; is < param.ns; is++) {
@@ -244,13 +264,44 @@ int main(int argc, char** argv) {
 				cudaStreamCreateWithFlags(&streams[is], cudaStreamNonBlocking));
 	}
 
+	if(mpi_rank == 0){
+
+		#ifdef MEMCHECK
+		std::cout << "CUDA return check: Enabled" << std::endl;
+		#else
+		std::cout << "CUDA return check: Disabled" << std::endl;
+		#endif
+		std::cout << "Total number of MPI ranks: " << mpi_size << std::endl;
+		std::cout << "Number of cores per rank: " << omp_get_max_threads() << std::endl;
+		std::cout << "Number of GPUs per rank: " << num_devices << std::endl;
+		std::cout << "Threads Per Block of GPUs: " << param.threads_per_block << std::endl;
+		std::cout << "Total number of particles: " << np*mpi_size << std::endl;
+		std::cout << "Number of particles per rank: " << np << "; "
+				<< (np * sizeof(FPpart) * 6) / (1024 * 1024) << " MB of data"
+				<< std::endl;
+		std::cout << "Allocating "
+				<< (batch_size * param.ns * sizeof(FPpart) * 6) / (1024 * 1024)
+				<< " MB of memory for particles on gpu" << std::endl;
+		std::cout << "batch_size per species of " << batch_size << " ("
+				<< (batch_size * sizeof(FPpart) * 6) / (1024 * 1024) << " MB)"
+				<< std::endl;
+	}
+
+
+	// ====================================================== //
+    // Timing variables
+    double iStart = MPI_Wtime();
+    double time0 = iStart;
+    // avg, variance and last cycle exec time for mover, interpolation, field solver and io, respectively
+    double average[4] = {0.,0.,0.,0.};
+    double variance[4] = {0.,0.,0.,0.};
+    double cycle_time[4] = {0.,0.,0.,0.};
+
 	// **********************************************************//
 	// **** Start the Simulation!  Cycle index start from 1  *** //
 	// **********************************************************//
 	for (int cycle = param.first_cycle_n;
 			 cycle < (param.first_cycle_n + param.ncycles); cycle++) {
-
-		dMover = 0.0; dInterp = 0.0; dField = 0.0; dIO = 0.0;
 
 
 		if(mpi_rank == 0){
@@ -260,44 +311,46 @@ int main(int argc, char** argv) {
 			std::cout << "***********************" << std::endl;
 
 		}
-		mpi_broadcast_field(&grd, &field);
+
+		time0 = MPI_Wtime();
 
 		// set to zero the densities - needed for interpolation
 		setZeroNetDensities(&idn, &grd);
-
-		// implicit mover
-		iMover = cpuSecond();  // start timer for mover
 
 		// blocking copy updated field from prev cycle
 		for (int device_id = 0; device_id < num_devices; device_id++) {
 			checkCudaErrors(cudaSetDevice(device_id));
 			copy_from_host_to_device(&field_gpu[device_id], &field,
-															 grd.nxn * grd.nyn * grd.nzn);
+									grd.nxn * grd.nyn * grd.nzn);
 		}
+
+		// ====================================================== //
+        // implicit mover
 
 		// async set zero, move and interp
 		for (int is = 0; is < param.ns; is++) {
 			int device_id = (is + num_devices) % num_devices;
-			if(mpi_rank == 0)
-				std::cout << "***  MOVER  ITERATIONS = " << part[is].NiterMover << " - Species "
-							<< part[is].species_ID << " ***" ;
 
 			checkCudaErrors(cudaSetDevice(device_id));
 			setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr[device_id],
-																	&ids_gpu[is], is);
+										&ids_gpu[is], is);
+			
+			// Move particles and interpolate to grid, on gpu in batches
 			int b = batch_update_particles(
 					&streams[is], &part[is], &part_positions_gpu[is],
 					part_positions_gpu_ptr[is], part_info_gpu_ptr[is],
 					field_gpu_ptr[device_id], grid_gpu_ptr[device_id], ids_gpu_ptr[is],
 					&param, param_gpu_ptr[device_id], batch_size);
 
-
 			if(mpi_rank == 0)
-				std::cout << " on gpu " << device_id << " - " << b << " batches " << std::endl;
+				std::cout << "***  MOVER  ITERATIONS = " << part[is].NiterMover 
+					<< " - Species " << part[is].species_ID << " ***" 
+					<< " on gpu " << device_id << " - " << b << " batches " 
+					<< std::endl;
 		
 		}
 		if(mpi_rank == 0)
-		std::cout << "***********************" << std::endl;
+			std::cout << "***********************" << std::endl;
 		// Apply BCs
 		for (int is = 0; is < param.ns; is++) {
 			/**
@@ -318,12 +371,6 @@ int main(int argc, char** argv) {
 			interp_DS_copy_to_host(&ids_gpu[is], &ids[is], &grd);
 		}
 
-
-
-		dMover = cpuSecond() - iMover;
-		eMover += dMover;  // stop timer for mover
-		update_statistics(&avg_mover, &stddev_mover, dMover, cycle);
-
 		// sum over species
 		sumOverSpecies(&idn, ids, &grd, param.ns);
 
@@ -333,6 +380,9 @@ int main(int argc, char** argv) {
 			mpi_reduce_densities(&grd, &ids[is]);
 		}
 
+		// Update timer for mover+interpolation
+		time0 = timer(&average[0], &variance[0], &cycle_time[0], time0, cycle);
+
 		if(mpi_rank == 0){
 
 			// interpolate charge density from center to node
@@ -341,35 +391,37 @@ int main(int argc, char** argv) {
 			// calculate hat functions rhoh and Jxh, Jyh, Jzh
 			calculateHatDensities(&id_aux, &idn, ids, &field, &grd, &param);
 
-			// Start Maxwell solver
-			iField = cpuSecond();  // start timer for the interpolation step
+            // ====================================================== //
+            // Maxwell solver
 
 			//  Poisson correction
 			if (param.PoissonCorrection)
 				divergenceCleaning(&grd, &field_aux, &field, &idn, &param);
-			// Calculate E
+
 			calculateE(&grd, &field_aux, &field, &id_aux, ids, &param);
-			// Calculate B
 			calculateB(&grd, &field_aux, &field, &param);
 
-			dField = cpuSecond() - iField;
-			eField += dField;  // stop timer for solvers
-			update_statistics(&avg_field, &stddev_field, dField, cycle);
-
-			// write E, B, rho to disk
-			if (cycle % param.FieldOutputCycle == 0) {
-				iIO = cpuSecond();
-				VTK_Write_Vectors(cycle, &grd, &field, &param);
-				VTK_Write_Scalars(cycle, &grd, ids, &idn, &param);
-				dIO = (cpuSecond() - iIO);
-				eIO += dIO;  // stop timer for interpolation
-				update_statistics(&avg_IO, &stddev_IO, dIO, cycle);
-			}
-
-			// print dummy zero for interp
-			std::cout << "Timing Cycle " << cycle << " : " << dMover << " 0.0 " << dField
-					<< " " << dIO << std::endl;
 		}
+
+        // broadcast EM field data from master process to slaves
+        mpi_broadcast_field(&grd, &field);
+        // Update timer for field solver
+		time0 = timer(&average[2], &variance[2], &cycle_time[2], time0, cycle);
+
+
+		// ====================================================== //
+        // IO
+		if (!mpi_rank && cycle % param.FieldOutputCycle == 0) {
+			// write E, B, rho to disk
+			VTK_Write_Vectors(cycle, &grd, &field, &param);
+			VTK_Write_Scalars(cycle, &grd, ids, &idn, &param);
+		}
+
+        // Update timer for io
+        time0 = timer(&average[3], &variance[3], &cycle_time[3], time0, cycle);
+
+        if(!mpi_rank)
+            std::cout << "Timing Cycle " << cycle << " : " << cycle_time[0] << " " << cycle_time[1] << " " << cycle_time[2] << " " << cycle_time[3] << std::endl;
 
 	}  // end of one PIC cycle
 
@@ -429,29 +481,50 @@ int main(int argc, char** argv) {
 	if(mpi_rank == 0)
 		std::cout << "DEALLOCATED GPU RESOURCES" << std::endl;
 
-	if(mpi_rank == 0){
-		// stop timer
-		double iElaps = cpuSecond() - iStart;
 
-		// Print timing of simulation
-		std::cout << std::endl;
-		std::cout << "**************************************" << std::endl;
-		std::cout << "   Tot. Simulation Time (s) = " << iElaps << std::endl;
-		std::cout << "   Mover Time / Cycle   (s) = " << eMover / param.ncycles
-							<< std::endl;
-		std::cout << "   Interp. Time / Cycle (s) = " << eInterp / param.ncycles
-							<< std::endl;
-		std::cout << "   Field Time / Cycle   (s) = " << eField / param.ncycles
-							<< std::endl;
-		std::cout << "   IO Time / Cycle      (s) = " << eIO / param.ncycles
-							<< std::endl;
-		std::cout << "**************************************" << std::endl;
-		std::cout << "Mover: " << avg_mover << " " << sqrt(stddev_mover / (param.ncycles - 1)) << std::endl;
-		std::cout << "Interp: " << avg_interp << " " << sqrt(stddev_interp / (param.ncycles - 1)) << std::endl;
-		std::cout << "Field: " << avg_field << " " << sqrt(stddev_field / (param.ncycles - 1)) << std::endl;
-		std::cout << "IO: " << avg_IO << " " << sqrt(stddev_IO / (param.ncycles -1)) << std::endl;
-	}
-	MPI_Finalize();
-	// exit
-	return 0;
+    if(!mpi_rank){
+        // stop timer
+        double iElaps = MPI_Wtime() - iStart;
+
+        // Print timing of simulation
+        std::cout << std::endl;
+        std::cout << "******************************************************" << std::endl;
+        std::cout << "   Tot. Simulation Time (s) = " << iElaps << std::endl;
+        std::cout << "   Mover/Interp / Cycle (s) = " << average[0] << "+-" << sqrt(variance[0] / (param.ncycles - 1)) << std::endl;
+        // std::cout << "   Interp. Time / Cycle (s) = " << average[1] << "+-" << sqrt(variance[1] / (param.ncycles - 1)) << std::endl;
+        std::cout << "   Field Time / Cycle   (s) = " << average[2] << "+-" << sqrt(variance[2] / (param.ncycles - 1)) << std::endl;
+        std::cout << "   IO Time / Cycle      (s) = " << average[3] << "+-" << sqrt(variance[3] / (param.ncycles - 1)) << std::endl;
+        std::cout << "******************************************************" << std::endl;
+    }
+
+    MPI_Finalize();
+    // exit
+    return 0;
 }
+
+inline void update_statistics(
+    double *mean, 
+    double *variance, 
+    double new_value, 
+    long count
+    )
+{
+    double delta = new_value - *mean;
+    *mean += delta / (double)count;
+    double delta2 = new_value - *mean;
+    *variance += delta * delta2;
+}
+
+double timer(
+    double *mean, 
+    double *variance, 
+    double *cycle,
+    double start_time,
+    long count)
+{
+    double t = MPI_Wtime();
+    *cycle = t - start_time;
+    update_statistics(mean, variance, *cycle, count);
+    return t;
+}
+

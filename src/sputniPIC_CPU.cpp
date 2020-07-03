@@ -189,10 +189,12 @@ int main(int argc, char **argv){
         time0 = MPI_Wtime();
 
         // #pragma omp parallel for // only if use mover_PC_V
-        for (int is=0; is < param.ns; is++)
+        for (int is=0; is < param.ns; is++){
             mover_PC(&part[is],&field,&grd,&param);
             //mover_PC_V(&part[is],&field,&grd,&param);
             //mover_interp(&part[is], &field, &ids[is],&grd, &param);
+
+        }
 
         time0 = timer(&average[0], &variance[0], &cycle_time[0], time0, cycle);
 
@@ -203,14 +205,16 @@ int main(int argc, char **argv){
 
         // set to zero the densities - needed for interpolation
         setZeroDensities(&idn,ids,&grd,param.ns);
-        
+
         // interpolate species: MAXIMUM parallelism is number of species
         #pragma omp parallel for
         for (int is=0; is < param.ns; is++){
             interpP2G(&part[is],&ids[is],&grd);
-            // apply BC to interpolated densities
+
+           // apply BC to interpolated densities
             applyBCids(&ids[is],&grd,&param);
         }
+
         // sum over species
         sumOverSpecies(&idn,ids,&grd,param.ns);
 
@@ -245,6 +249,7 @@ int main(int argc, char **argv){
             calculateB(&grd,&field_aux,&field,&param);
 
         }
+
         // broadcast EM field data from master process to slaves
         mpi_broadcast_field(&grd, &field);
         // Update timer for field solver

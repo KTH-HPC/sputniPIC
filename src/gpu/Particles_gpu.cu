@@ -3,8 +3,11 @@
 #include "gpu/Particles_gpu.cuh"
 
 /** allocate particle arrays */
-void particle_allocate_host(struct parameters* param, struct particles* part,
-														int is) {
+void particle_allocate_host(
+	struct parameters* param, 
+	struct particles* part,
+	int is
+	) {
 	// set species ID
 	part->species_ID = is;
 	// number of particles
@@ -49,6 +52,8 @@ void particle_allocate_host(struct parameters* param, struct particles* part,
 	checkCudaErrors(cudaMallocHost(&part->w, sizeof(FPpart) * npmax));
 
 	checkCudaErrors(cudaMallocHost(&part->q, sizeof(FPinterp) * npmax));
+	checkCudaErrors(cudaMallocHost(&part->track_particle, sizeof(bool) * npmax));
+	
 }
 
 /** deallocate particles allocated with */
@@ -62,11 +67,13 @@ void particle_deallocate_host(struct particles* part) {
 	checkCudaErrors(cudaFreeHost(part->w));
 
 	checkCudaErrors(cudaFreeHost(part->q));
+	checkCudaErrors(cudaFreeHost(part->track_particle));
 }
 
 void particles_positions_alloc_device(
 		struct particles_positions_gpu* part_pos,
-		struct particles_positions_gpu** part_pos_ptr, size_t length) {
+		struct particles_positions_gpu** part_pos_ptr, 
+		size_t length) {
 	checkCudaErrors(cudaMalloc(part_pos_ptr, sizeof(particles_positions_gpu)));
 
 	checkCudaErrors(cudaMalloc(&part_pos->x, length * sizeof(FPpart)));
@@ -194,8 +201,8 @@ void particles_info_alloc_and_copy_to_device(
 
 	checkCudaErrors(cudaMalloc(part_info_gpu_ptr, sizeof(particles_info_gpu)));
 	checkCudaErrors(cudaMemcpy(*part_info_gpu_ptr, part_info_gpu,
-														 sizeof(particles_info_gpu),
-														 cudaMemcpyHostToDevice));
+								sizeof(particles_info_gpu),
+								cudaMemcpyHostToDevice));
 }
 
 void particles_info_dealloc_device(
@@ -208,16 +215,18 @@ void particles_info_dealloc_device(
  * Batchsize should be a multiple of 512
  *
  */
-int batch_update_particles(cudaStream_t* stream, 
-							struct particles* part_cpu,
-							struct particles_positions_gpu* part_gpu,
-							struct particles_positions_gpu* part_gpu_ptr,
-							struct particles_info_gpu* part_info_gpu_ptr,
-							struct EMfield* field_gpu_ptr,
-							struct grid* grd_gpu_ptr,
-							struct interpDensSpecies* ids_gpu_ptr,
-							struct parameters* param_cpu,
-							struct parameters* param_gpu_ptr, int batchsize) 
+int batch_update_particles(
+	cudaStream_t* stream, 
+	struct particles* part_cpu,
+	struct particles_positions_gpu* part_gpu,
+	struct particles_positions_gpu* part_gpu_ptr,
+	struct particles_info_gpu* part_info_gpu_ptr,
+	struct EMfield* field_gpu_ptr,
+	struct grid* grd_gpu_ptr,
+	struct interpDensSpecies* ids_gpu_ptr,
+	struct parameters* param_cpu,
+	struct parameters* param_gpu_ptr, 
+	int batchsize) 
 	{
 	// TODO make entire function run on a cuda stream
 
@@ -276,12 +285,14 @@ int batch_update_particles(cudaStream_t* stream,
 
 
 
-__global__ void move_and_interpolate(struct particles_positions_gpu* part_pos,
-																		 particles_info_gpu* part_info,
-																		 struct EMfield* field, struct grid* grd,
-																		 struct parameters* param,
-																		 struct interpDensSpecies* ids_gpu,
-																		 int num_particles) {
+__global__ 
+void move_and_interpolate(
+	struct particles_positions_gpu* part_pos,
+	particles_info_gpu* part_info,
+	struct EMfield* field, struct grid* grd,
+	struct parameters* param,
+	struct interpDensSpecies* ids_gpu,
+	int num_particles) {
 	int local_index = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (local_index >= num_particles) {
@@ -292,10 +303,14 @@ __global__ void move_and_interpolate(struct particles_positions_gpu* part_pos,
 	interpP2G_gpu(part_pos, part_info, ids_gpu, grd);
 }
 
-__device__ void mover_PC_gpu(struct particles_positions_gpu* part_pos,
-														 particles_info_gpu* part_info,
-														 struct EMfield* field, struct grid* grd,
-														 struct parameters* param) {
+__device__ 
+void mover_PC_gpu(
+	struct particles_positions_gpu* part_pos,
+	particles_info_gpu* part_info,
+	struct EMfield* field, 
+	struct grid* grd,
+	struct parameters* param
+	) {
 	int local_index = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// auxiliary variables
@@ -418,8 +433,14 @@ __device__ void mover_PC_gpu(struct particles_positions_gpu* part_pos,
 	}  // end of subcycling
 }
 
-__device__ void bc_particles(FPpart* pos, FPpart* vel, bool periodic,
-														 double len, int index) {
+__device__ 
+void bc_particles(
+	FPpart* pos, 
+	FPpart* vel, 
+	bool periodic,
+	double len, 
+	int index
+	) {
 	if (pos[index] > len) {
 		if (periodic) {  // PERIODIC
 			pos[index] = pos[index] - len;
@@ -438,10 +459,13 @@ __device__ void bc_particles(FPpart* pos, FPpart* vel, bool periodic,
 }
 
 /** Interpolation Particle --> Grid: This is for species */
-__device__ void interpP2G_gpu(struct particles_positions_gpu* part_pos,
-															particles_info_gpu* part_info,
-															struct interpDensSpecies* ids_gpu,
-															struct grid* grd) {
+__device__ 
+void interpP2G_gpu(
+	struct particles_positions_gpu* part_pos,
+	particles_info_gpu* part_info,
+	struct interpDensSpecies* ids_gpu,
+	struct grid* grd
+	) {
 	// Index and helper variables
 	int local_index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -481,49 +505,54 @@ __device__ void interpP2G_gpu(struct particles_positions_gpu* part_pos,
 		for (int jj = 0; jj < 2; jj++)
 			for (int kk = 0; kk < 2; kk++)
 				weight[ii][jj][kk] = part_pos->q[local_index] * xi[ii] * eta[jj] *
-														 zeta[kk] * grd->invVOL;
+												zeta[kk] * grd->invVOL;
 
 	//////////////////////////
 	// add charge density
 	for (int ii = 0; ii < 2; ii++)
 		for (int jj = 0; jj < 2; jj++)
 			for (int kk = 0; kk < 2; kk++)
-				atomicAdd(&ids_gpu->rhon_flat[get_idx((ix - ii), (iy - jj), (iz - kk),
-																							grd->nyn, grd->nzn)],
-									weight[ii][jj][kk] * grd->invVOL);
+				atomicAdd(&ids_gpu->rhon_flat[
+						get_idx((ix - ii), (iy - jj), (iz - kk), grd->nyn, grd->nzn)
+							], weight[ii][jj][kk] * grd->invVOL);
 
 	atomic_add_pressure(part_pos->u[local_index], weight, ids_gpu->Jx_flat,
-											grd->invVOL, ix, iy, iz, grd->nyn, grd->nzn);
+						grd->invVOL, ix, iy, iz, grd->nyn, grd->nzn);
 	atomic_add_pressure(part_pos->v[local_index], weight, ids_gpu->Jy_flat,
-											grd->invVOL, ix, iy, iz, grd->nyn, grd->nzn);
+						grd->invVOL, ix, iy, iz, grd->nyn, grd->nzn);
 	atomic_add_pressure(part_pos->w[local_index], weight, ids_gpu->Jz_flat,
-											grd->invVOL, ix, iy, iz, grd->nyn, grd->nzn);
+						grd->invVOL, ix, iy, iz, grd->nyn, grd->nzn);
 
 	atomic_add_pressure(part_pos->u[local_index] * part_pos->u[local_index],
-											weight, ids_gpu->pxx_flat, grd->invVOL, ix, iy, iz,
-											grd->nyn, grd->nzn);
+						weight, ids_gpu->pxx_flat, grd->invVOL, ix, iy, iz,
+						grd->nyn, grd->nzn);
 	atomic_add_pressure(part_pos->v[local_index] * part_pos->v[local_index],
-											weight, ids_gpu->pyy_flat, grd->invVOL, ix, iy, iz,
-											grd->nyn, grd->nzn);
+						weight, ids_gpu->pyy_flat, grd->invVOL, ix, iy, iz,
+						grd->nyn, grd->nzn);
 	atomic_add_pressure(part_pos->w[local_index] * part_pos->w[local_index],
-											weight, ids_gpu->pzz_flat, grd->invVOL, ix, iy, iz,
-											grd->nyn, grd->nzn);
+						weight, ids_gpu->pzz_flat, grd->invVOL, ix, iy, iz,
+						grd->nyn, grd->nzn);
 
 	atomic_add_pressure(part_pos->u[local_index] * part_pos->v[local_index],
-											weight, ids_gpu->pxy_flat, grd->invVOL, ix, iy, iz,
-											grd->nyn, grd->nzn);
+						weight, ids_gpu->pxy_flat, grd->invVOL, ix, iy, iz,
+						grd->nyn, grd->nzn);
 	atomic_add_pressure(part_pos->u[local_index] * part_pos->w[local_index],
-											weight, ids_gpu->pxz_flat, grd->invVOL, ix, iy, iz,
-											grd->nyn, grd->nzn);
+						weight, ids_gpu->pxz_flat, grd->invVOL, ix, iy, iz,
+						grd->nyn, grd->nzn);
 	atomic_add_pressure(part_pos->v[local_index] * part_pos->w[local_index],
-											weight, ids_gpu->pyz_flat, grd->invVOL, ix, iy, iz,
-											grd->nyn, grd->nzn);
+						weight, ids_gpu->pyz_flat, grd->invVOL, ix, iy, iz,
+						grd->nyn, grd->nzn);
 }
 
-__device__ void atomic_add_pressure(FPpart part_dat, FPpart weight[2][2][2],
-																		FPinterp* ids_arr, FPfield invVOL, int ix,
-																		int iy, int iz, int stride_y,
-																		int stride_z) {
+__device__ 
+void atomic_add_pressure(
+	FPpart part_dat, 
+	FPpart weight[2][2][2],
+	FPinterp* ids_arr, 
+	FPfield invVOL, 
+	int ix, int iy, int iz, 
+	int stride_y, int stride_z
+	) {
 	FPpart temp[2][2][2];
 	// #pragma unroll
 	for (int ii = 0; ii < 2; ii++)
@@ -539,7 +568,7 @@ __device__ void atomic_add_pressure(FPpart part_dat, FPpart weight[2][2][2],
 		for (int jj = 0; jj < 2; jj++)
 			//#pragma unroll
 			for (int kk = 0; kk < 2; kk++)
-				atomicAdd(&ids_arr[get_idx((ix - ii), (iy - jj), (iz - kk), stride_y,
-																	 stride_z)],
-									temp[ii][jj][kk] * invVOL);
+				atomicAdd(&ids_arr[
+					get_idx((ix - ii), (iy - jj), (iz - kk), stride_y, stride_z)
+					], temp[ii][jj][kk] * invVOL);
 }
