@@ -30,6 +30,7 @@ bool CG(FPfield *xkrylov, int xkrylovlen, FPfield *b, int maxit, double tol,
   // c = dotP(r, r, xkrylovlen);
 
   (*FunctionImage)(im, xkrylov, grd);
+
   c = 0.0;
   for (int ii = 0; ii < xkrylovlen; ii++) {
     r[ii] = b[ii] - im[ii];
@@ -153,7 +154,6 @@ void GMRes(GENERIC_IMAGE_GMRES FunctionImage, FPfield *xkrylov, int xkrylovlen,
     // r = b - A*x
     (*FunctionImage)(im, xkrylov, field, ids, grd, param);
     sub(r, b, im, xkrylovlen);
-
     // error as norm of th 1residual
     initial_error = normP(r, xkrylovlen);
     normb = normP(b, xkrylovlen);

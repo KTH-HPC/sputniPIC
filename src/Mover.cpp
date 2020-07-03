@@ -4,8 +4,8 @@
 int mover_PC(struct particles *part, struct EMfield *field, struct grid *grd,
              struct parameters *param) {
   // print species and subcycling
-  std::cout << "***  MOVER  ITERATIONS = " << part->NiterMover << " - Species "
-            << part->species_ID << " ***" << std::endl;
+  // std::cout << "***  MOVER  ITERATIONS = " << part->NiterMover << " - Species "
+  //           << part->species_ID << " ***" << std::endl;
 
   // auxiliary variables
   FPpart dt_sub_cycling = (FPpart)param->dt / ((double)part->n_sub_cycles);
@@ -29,6 +29,7 @@ int mover_PC(struct particles *part, struct EMfield *field, struct grid *grd,
                                  weight, xi, eta, zeta, omdtsq, denom, ut, vt, \
                                  wt, udotb, ix, iy, iz)
   for (int i = 0; i < part->nop; i++) {
+
     xptilde = part->x[i];
     yptilde = part->y[i];
     zptilde = part->z[i];
@@ -393,7 +394,7 @@ void interpP2G(struct particles *part, struct interpDensSpecies *ids,
 
   // it is cheaper to recover from a race condition than protect against it
   //#pragma omp parallel for private(temp, weight, xi, eta, zeta, ix, iy, iz)
-  for (int i = 0; i < part->nop; i++) {
+  for (long i = 0; i < part->nop; i++) {
     // determine cell: can we change to int()? is it faster?
     ix = 2 + int(floor((part->x[i] - grd->xStart) * grd->invdx));
     iy = 2 + int(floor((part->y[i] - grd->yStart) * grd->invdy));
@@ -452,10 +453,14 @@ weight[ii][jj][kk]* grd->invVOL;
     // calculate the weights for different nodes
     for (int ii = 0; ii < 2; ii++)
       for (int jj = 0; jj < 2; jj++)
-        for (int kk = 0; kk < 2; kk++)
+        for (int kk = 0; kk < 2; kk++){
           weight[ii][jj][kk] =
               part->q[i] * xi[ii] * eta[jj] * zeta[kk] * grd->invVOL;
-
+              // if (i % 100000 == 0){
+              //   printf("%d %ld : %d %d %d %.8f \n", 
+              //     part->species_ID, i, ii, jj, kk, weight[ii][jj][kk]);
+              // }
+        }
     //////////////////////////
     // add charge density
     for (int ii = 0; ii < 2; ii++)

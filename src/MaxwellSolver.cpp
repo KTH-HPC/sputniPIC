@@ -264,9 +264,9 @@ void calculateE(grid *grd, EMfield_aux *field_aux, EMfield *field,
   int nyn = grd->nyn;
   int nzn = grd->nzn;
 
-  int nxc = grd->nxc;
-  int nyc = grd->nyc;
-  int nzc = grd->nzc;
+  // int nxc = grd->nxc;
+  // int nyc = grd->nyc;
+  // int nzc = grd->nzc;
 
   // krylov vectors
   FPfield *xkrylov =
@@ -430,10 +430,12 @@ void divergenceCleaning(grid *grd, EMfield_aux *field_aux, EMfield *field,
 
   // phys to solver
   phys2solver(bkrylovPoisson, divE, nxc, nyc, nzc);
+
   // call CG for solving Poisson
   if (!CG(xkrylovPoisson, (nxc - 2) * (nyc - 2) * (nzc - 2), bkrylovPoisson,
           3000, param->CGtol, &PoissonImage, grd))
     std::cout << "*ERROR - CG not Converged" << std::endl;
+
   solver2phys(field_aux->Phi, xkrylovPoisson, nxc, nyc, nzc);
 
   // This has Newmann. If commented has zero in ghost cells
