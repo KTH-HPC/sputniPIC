@@ -89,7 +89,11 @@ void particle_deallocate_host(struct particles*);
  */
 void particles_positions_alloc_device(
     struct particles_positions_gpu* part_pos,
-    struct particles_positions_gpu** part_pos_ptr, size_t length);
+    struct particles_positions_gpu** part_pos_ptr, size_t length
+#ifdef CUDA_UVM
+    , struct particles *part_cpu
+#endif
+);
 
 /**
  * Dealloc memory on gpu for particle positions

@@ -43,6 +43,7 @@ void particle_allocate_host(
 	//////////////////////////////
 	/// ALLOCATION PARTICLE ARRAYS
 	//////////////////////////////
+#ifndef CUDA_UVM
 	checkCudaErrors(cudaMallocHost(&part->x, sizeof(FPpart) * npmax));
 	checkCudaErrors(cudaMallocHost(&part->y, sizeof(FPpart) * npmax));
 	checkCudaErrors(cudaMallocHost(&part->z, sizeof(FPpart) * npmax));
@@ -53,11 +54,23 @@ void particle_allocate_host(
 
 	checkCudaErrors(cudaMallocHost(&part->q, sizeof(FPinterp) * npmax));
 	checkCudaErrors(cudaMallocHost(&part->track_particle, sizeof(bool) * npmax));
-	
+#else
+	checkCudaErrors(cudaMallocManaged(&part->x, sizeof(FPpart) * npmax));
+	checkCudaErrors(cudaMallocManaged(&part->y, sizeof(FPpart) * npmax));
+	checkCudaErrors(cudaMallocManaged(&part->z, sizeof(FPpart) * npmax));
+
+	checkCudaErrors(cudaMallocManaged(&part->u, sizeof(FPpart) * npmax));
+	checkCudaErrors(cudaMallocManaged(&part->v, sizeof(FPpart) * npmax));
+	checkCudaErrors(cudaMallocManaged(&part->w, sizeof(FPpart) * npmax));
+
+	checkCudaErrors(cudaMallocManaged(&part->q, sizeof(FPinterp) * npmax));
+	checkCudaErrors(cudaMallocManaged(&part->track_particle, sizeof(bool) * npmax));
+#endif
 }
 
 /** deallocate particles allocated with */
 void particle_deallocate_host(struct particles* part) {
+#ifndef CUDA_UVM
 	checkCudaErrors(cudaFreeHost(part->x));
 	checkCudaErrors(cudaFreeHost(part->y));
 	checkCudaErrors(cudaFreeHost(part->z));
@@ -68,12 +81,29 @@ void particle_deallocate_host(struct particles* part) {
 
 	checkCudaErrors(cudaFreeHost(part->q));
 	checkCudaErrors(cudaFreeHost(part->track_particle));
+#else
+	checkCudaErrors(cudaFree(part->x));
+	checkCudaErrors(cudaFree(part->y));
+	checkCudaErrors(cudaFree(part->z));
+
+	checkCudaErrors(cudaFree(part->u));
+	checkCudaErrors(cudaFree(part->v));
+	checkCudaErrors(cudaFree(part->w));
+
+	checkCudaErrors(cudaFree(part->q));
+	checkCudaErrors(cudaFree(part->track_particle));
+#endif
 }
 
 void particles_positions_alloc_device(
 		struct particles_positions_gpu* part_pos,
 		struct particles_positions_gpu** part_pos_ptr, 
-		size_t length) {
+		size_t length
+#ifdef CUDA_UVM
+                , struct particles *part_cpu
+#endif
+                ) {
+#ifndef CUDA_UVM
 	checkCudaErrors(cudaMalloc(part_pos_ptr, sizeof(particles_positions_gpu)));
 
 	checkCudaErrors(cudaMalloc(&part_pos->x, length * sizeof(FPpart)));
@@ -83,15 +113,25 @@ void particles_positions_alloc_device(
 	checkCudaErrors(cudaMalloc(&part_pos->v, length * sizeof(FPpart)));
 	checkCudaErrors(cudaMalloc(&part_pos->w, length * sizeof(FPpart)));
 	checkCudaErrors(cudaMalloc(&part_pos->q, length * sizeof(FPinterp)));
-
+#else
+	checkCudaErrors(cudaMallocManaged(part_pos_ptr, sizeof(particles_positions_gpu)));
+        part_pos->x = part_cpu->x;
+        part_pos->y = part_cpu->y;
+        part_pos->z = part_cpu->z;
+        part_pos->u = part_cpu->u;
+        part_pos->v = part_cpu->v;
+        part_pos->w = part_cpu->w;
+        part_pos->q = part_cpu->q;
+#endif
 	checkCudaErrors(cudaMemcpy(*part_pos_ptr, part_pos,
-														 sizeof(particles_positions_gpu),
-														 cudaMemcpyHostToDevice));
+				 sizeof(particles_positions_gpu),
+				 cudaMemcpyHostToDevice));
 }
 
 void particles_positions_dealloc_device(
 		struct particles_positions_gpu* part_pos,
 		struct particles_positions_gpu* part_pos_ptr) {
+#ifndef CUDA_UVM
 	checkCudaErrors(cudaFree(part_pos_ptr));
 
 	checkCudaErrors(cudaFree(part_pos->x));
@@ -101,6 +141,7 @@ void particles_positions_dealloc_device(
 	checkCudaErrors(cudaFree(part_pos->v));
 	checkCudaErrors(cudaFree(part_pos->w));
 	checkCudaErrors(cudaFree(part_pos->q));
+#endif
 }
 
 /**
@@ -115,6 +156,7 @@ void particles_positions_copy_to_device(
 		size_t num_particles
 		) {
 
+#ifndef CUDA_UVM
 	checkCudaErrors(cudaMemcpyAsync(
 			part_pos->x + idx_start_gpu, particles->x + idx_start_cpu,
 			num_particles * sizeof(FPpart), cudaMemcpyHostToDevice, *stream));
@@ -136,6 +178,7 @@ void particles_positions_copy_to_device(
 	checkCudaErrors(cudaMemcpyAsync(
 			part_pos->q + idx_start_gpu, particles->q + idx_start_cpu,
 			num_particles * sizeof(FPinterp), cudaMemcpyHostToDevice, *stream));
+#endif
 }
 
 /**
@@ -150,6 +193,7 @@ void particles_positions_copy_to_host(
 	size_t num_particles
 	) {
 
+#ifndef CUDA_UVM
 	checkCudaErrors(cudaMemcpyAsync(
 			particles->x + idx_start_cpu, part_pos->x + idx_start_gpu,
 			num_particles * sizeof(FPpart), cudaMemcpyDeviceToHost, *stream));
@@ -171,6 +215,7 @@ void particles_positions_copy_to_host(
 	checkCudaErrors(cudaMemcpyAsync(
 			particles->q + idx_start_cpu, part_pos->q + idx_start_gpu,
 			num_particles * sizeof(FPinterp), cudaMemcpyDeviceToHost, *stream));
+#endif
 }
 
 /**
@@ -199,7 +244,11 @@ void particles_info_alloc_and_copy_to_device(
 	part_info_gpu->vth = particles_cpu->vth;
 	part_info_gpu->wth = particles_cpu->wth;
 
+#ifndef CUDA_UVM
 	checkCudaErrors(cudaMalloc(part_info_gpu_ptr, sizeof(particles_info_gpu)));
+#else
+	checkCudaErrors(cudaMallocManaged(part_info_gpu_ptr, sizeof(particles_info_gpu)));
+#endif
 	checkCudaErrors(cudaMemcpy(*part_info_gpu_ptr, part_info_gpu,
 								sizeof(particles_info_gpu),
 								cudaMemcpyHostToDevice));

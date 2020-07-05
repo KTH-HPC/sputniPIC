@@ -1,11 +1,11 @@
-VERSION=CPU
+VERSION=GPU
 
 CXX=mpicxx
 CXXFLAGS=-std=c++11 -I./include -O3 -g -fopenmp
 
 NVCC=nvcc
-ARCH=-gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70
-NVCCFLAGS=-DMEMCHECK -DUSE_GPU -lineinfo -I./include $(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wno-unknown-pragmas" --compiler-bindir=$(CXX)
+ARCH=-gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70 -gencode arch=compute_75,code=sm_75
+NVCCFLAGS=-DMEMCHECK -DUSE_GPU -lineinfo -I./include $(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wno-unknown-pragmas" --compiler-bindir=$(CXX) -DCUDA_UVM
 
 # Default to use host compiler and flags
 COMPILER=$(CXX)
@@ -57,5 +57,6 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(COMPILER) $(COMPILER_FLAGS) $< -c -o $@
 
 clean:
+	rm -rf */*.o */*/*.o
 	rm -rf $(OBJS)
 	rm -rf $(BIN)/*.out

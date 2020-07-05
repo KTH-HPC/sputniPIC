@@ -18,6 +18,8 @@ size_t get_appropriate_batch_size(struct parameters* param) {
     if (param->npMax[is] > batch_size) batch_size = param->npMax[is];
   }
 
+
+#ifndef CUDA_UVM
   batch_size /= param->number_of_batches;
 
   // total memory needed is num_particles*num_species*6*sizeof(float)
@@ -32,6 +34,7 @@ size_t get_appropriate_batch_size(struct parameters* param) {
       return -1;
     }
   }
+#endif
 
   return batch_size;
 }

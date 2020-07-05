@@ -123,7 +123,12 @@ int main(int argc, char** argv) {
 	interp_dens_aux_allocate(&grd, &id_aux);
 
     // Allocate Particles
+#ifndef CUDA_UVM
     particles *part = new particles[param.ns];
+#else
+    particles *part;
+    checkCudaErrors(cudaMallocManaged(&part, sizeof(particles)*param.ns));
+#endif
     particles *part_global = new particles[param.ns];
     
     // allocation for global particles
@@ -252,6 +257,9 @@ int main(int argc, char** argv) {
 			&part_positions_gpu[is],
 			&part_positions_gpu_ptr[is], 
 			batch_size
+#ifdef CUDA_UVM
+			, &part[is]
+#endif
 			);
 	}
 
