@@ -6,6 +6,17 @@
 
 #define NS_MAX 6
 
+struct directories {
+  /** inputfile */
+  std::string inputfile;
+  /** SaveDirName     */
+  std::string SaveDirName;
+  /** RestartDirName     */
+  std::string RestartDirName;
+  /** name of the file with wave amplitude and phases */
+  std::string WaveFile;
+};
+
 /** Simulation Parameters */
 struct parameters {
   /** light speed */

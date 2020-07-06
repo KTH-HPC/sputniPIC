@@ -77,9 +77,15 @@ void printGrid(struct grid *grd) {
 
 /** allocate electric and magnetic field */
 void grid_deallocate(struct grid *grd) {
+#ifndef CUDA_UVM
   delArr3(grd->XN, grd->nxn, grd->nyn);
   delArr3(grd->YN, grd->nxn, grd->nyn);
   delArr3(grd->ZN, grd->nxn, grd->nyn);
+#else
+  cuda_delArray3<FPfield>(grd->XN);
+  cuda_delArray3<FPfield>(grd->YN);
+  cuda_delArray3<FPfield>(grd->ZN);
+#endif
 }
 
 /** interpolation Node to Center */

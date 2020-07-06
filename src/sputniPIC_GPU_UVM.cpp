@@ -78,8 +78,10 @@ int main(int argc, char** argv) {
     // Read the input file name from command line
 
     struct directories paths;
-    parameters param;
-    readInputFile(&param,&paths,argc,argv);
+    parameters *_param;
+    checkCudaErrors(cudaMallocManaged(&_param, sizeof(parameters)));
+    parameters &param = *_param;
+    readInputFile(&param, &paths, argc, argv);
     if(!mpi_rank){
         printParameters(&param, &paths);
         saveParameters(&param, &paths);
@@ -96,21 +98,28 @@ int main(int argc, char** argv) {
 	}
 
 	// ====================================================== //
-    // Declare variables and alloc memory
+        // Declare variables and alloc memory
 
 	// Set-up the grid information
-	grid grd;
+	//grid grd;
+	//setGrid(&param, &grd);
+        grid *_grd;
+        checkCudaErrors(cudaMallocManaged(&_grd, sizeof(grid)));
+        grid &grd = *_grd;
 	setGrid(&param, &grd);
 
 	// Allocate Fields
-	EMfield field;
+	EMfield *_field;
+        checkCudaErrors(cudaMallocManaged(&_field, sizeof(EMfield)));
+        EMfield &field = *_field;
 	field_allocate(&grd, &field);
 	EMfield_aux field_aux;
 	field_aux_allocate(&grd, &field_aux);
 
 	// Allocate Interpolated Quantities
 	// per species
-	interpDensSpecies* ids = new interpDensSpecies[param.ns];
+        interpDensSpecies* ids;
+        checkCudaErrors(cudaMallocManaged(&ids, sizeof(interpDensSpecies)*param.ns));
 	for (int is = 0; is < param.ns; is++) {
 		interp_dens_species_allocate(&grd, &ids[is], is);
 	}
@@ -124,7 +133,8 @@ int main(int argc, char** argv) {
 	interp_dens_aux_allocate(&grd, &id_aux);
 
     // Allocate Particles
-    particles *part = new particles[param.ns];
+    particles *part;
+    checkCudaErrors(cudaMallocManaged(&part, sizeof(particles)*param.ns));
     particles *part_global = new particles[param.ns];
     
     // allocation for global particles
@@ -179,46 +189,13 @@ int main(int argc, char** argv) {
 	int num_devices;
 	checkCudaErrors(cudaGetDeviceCount(&num_devices));
 
-	parameters* param_gpu_ptr[num_devices] = {nullptr};
-	for (int device_id = 0; device_id < num_devices; device_id++) {
-		checkCudaErrors(cudaSetDevice(device_id));
-		param_alloc_and_copy_to_device(&param, &param_gpu_ptr[device_id]);
-	}
+//	parameters* param_gpu_ptr[num_devices] = {nullptr};
+//	for (int device_id = 0; device_id < num_devices; device_id++) {
+//		checkCudaErrors(cudaSetDevice(device_id));
+//		param_alloc_and_copy_to_device(&param, &param_gpu_ptr[device_id]);
+//	}
 
-	// Create the grid on the GPU and copy the data to the device.
-	grid grid_gpu[num_devices];
-	grid* grid_gpu_ptr[num_devices] = {nullptr};
-	for (int device_id = 0; device_id < num_devices; device_id++) {
-		checkCudaErrors(cudaSetDevice(device_id));
-		grid_alloc_and_copy_to_device(&grd, &grid_gpu[device_id],
-										&grid_gpu_ptr[device_id]);
-	}
-
-	// Create the electromagnetic field on the GPU and copy the data to the
-	// device.
-	EMfield field_gpu[num_devices];
-	EMfield* field_gpu_ptr[num_devices] = {nullptr};
-	for (int device_id = 0; device_id < num_devices; device_id++) {
-		checkCudaErrors(cudaSetDevice(device_id));
-		field_alloc_and_copy_to_device(&grd, 
-										&field_gpu[device_id], 
-										&field,
-										&field_gpu_ptr[device_id]);
-	}
-
-	// Create interpolated quantities on the GPU and and copy the data to the
-	// device.
-	interpDensSpecies* ids_gpu = new interpDensSpecies[param.ns];        // array
-	interpDensSpecies** ids_gpu_ptr = new interpDensSpecies*[param.ns];  // array
-	for (int is = 0; is < param.ns; is++) {
-		int device_id = (is + num_devices) % num_devices;
-		checkCudaErrors(cudaSetDevice(device_id));
-		// Init and copy data here.
-		interp_DS_alloc_and_copy_to_device(&ids[is], &ids_gpu[is], &ids_gpu_ptr[is],
-											&grd);
-	}
-
-	// Create particle information on the GPU and copy the data to the device.
+	// Create particle information on the GPU and copy pointer to managed host memory.
 	particles_info_gpu* part_info_gpu =
 			new particles_info_gpu[param.ns];  // array
 	particles_info_gpu** part_info_gpu_ptr =
@@ -234,13 +211,13 @@ int main(int argc, char** argv) {
 		np += part[is].nop;
 	}
 
+        // Always have one batch when UVM is used
 	size_t batch_size = get_appropriate_batch_size(&param);
 	if (batch_size <= 0) {
 		return -1;
 	}
-//  batch_size /= num_devices; /* size computed based on free mem of one device */
 
-	// allocate field and copy to GPUs
+	// copy over point to managed memory
 	for (int is = 0; is < param.ns; is++) {
 		int device_id = (is + num_devices) % num_devices;
 		checkCudaErrors(cudaSetDevice(device_id));
@@ -252,7 +229,8 @@ int main(int argc, char** argv) {
 		particles_positions_alloc_device(
 			&part_positions_gpu[is],
 			&part_positions_gpu_ptr[is], 
-			batch_size
+			batch_size,
+			&part[is]
 			);
 	}
 
@@ -269,6 +247,11 @@ int main(int argc, char** argv) {
 
 		#ifdef MEMCHECK
 		std::cout << "CUDA return check: Enabled" << std::endl;
+		#ifdef CUDA_UVM
+		std::cout << "CUDA Unified Memory: Enabled" << std::endl;
+                #else
+		std::cout << "CUDA Unified Memory: Disabled" << std::endl;
+                #endif
 		#else
 		std::cout << "CUDA return check: Disabled" << std::endl;
 		#endif
@@ -318,30 +301,22 @@ int main(int argc, char** argv) {
 		// set to zero the densities - needed for interpolation
 		setZeroNetDensities(&idn, &grd);
 
-		// blocking copy updated field from prev cycle
-		for (int device_id = 0; device_id < num_devices; device_id++) {
-			checkCudaErrors(cudaSetDevice(device_id));
-			copy_from_host_to_device(&field_gpu[device_id], &field,
-									grd.nxn * grd.nyn * grd.nzn);
-		}
-
 		// ====================================================== //
-        // implicit mover
+                // implicit mover
 
 		// async set zero, move and interp
 		for (int is = 0; is < param.ns; is++) {
 			int device_id = (is + num_devices) % num_devices;
 
 			checkCudaErrors(cudaSetDevice(device_id));
-			setZeroSpeciesDensities_gpu(&streams[is], &grd, grid_gpu_ptr[device_id],
-										&ids_gpu[is], is);
-			
+			setZeroSpeciesDensities_gpu(&streams[is], &grd, &grd, &ids[is], is);
+
 			// Move particles and interpolate to grid, on gpu in batches
 			int b = batch_update_particles(
-					&streams[is], &part[is], &part_positions_gpu[is],
+					device_id, &streams[is], &part[is], &part_positions_gpu[is],
 					part_positions_gpu_ptr[is], part_info_gpu_ptr[is],
-					field_gpu_ptr[device_id], grid_gpu_ptr[device_id], ids_gpu_ptr[is],
-					&param, param_gpu_ptr[device_id], batch_size);
+					_field, _grd, &ids[is],
+					&param, _param, batch_size);
 
 			if(mpi_rank == 0)
 				std::cout << "***  MOVER  ITERATIONS = " << part[is].NiterMover 
@@ -361,15 +336,8 @@ int main(int argc, char** argv) {
 			int device_id = (is + num_devices) % num_devices;
 			checkCudaErrors(cudaSetDevice(device_id));
 			cudaStreamSynchronize(streams[is]);
-			applyBCids_gpu(&streams[is], ids_gpu_ptr[is], grid_gpu_ptr[device_id],
+			applyBCids_gpu(&streams[is], &ids[is], &grd,
 										 &grd, &param);
-		}
-
-		// copy back quantities from GPUs
-		for (int is = 0; is < param.ns; is++) {
-			int device_id = (is + num_devices) % num_devices;
-			checkCudaErrors(cudaSetDevice(device_id));
-			interp_DS_copy_to_host(&ids_gpu[is], &ids[is], &grd);
 		}
 
 		// sum over species
@@ -452,28 +420,19 @@ int main(int argc, char** argv) {
 		checkCudaErrors(cudaStreamDestroy(streams[is]));
 	}
 
-	for (int device_id = 0; device_id < num_devices; device_id++) {
-		// Parameters
-		checkCudaErrors(cudaFree(param_gpu_ptr[device_id]));
-		// Grid
-		grid_deallocate_device(&grid_gpu[device_id], grid_gpu_ptr[device_id]);
-		// EMfield
-		field_deallocate_device(&field_gpu[device_id], field_gpu_ptr[device_id]);
-	}
+	// EMfield
+	field_deallocate_device(&field, &field);
 
 	// interpDensSpecies
 	for (int is = 0; is < param.ns; is++) {
 		int device_id = (is + num_devices) % num_devices;
 		checkCudaErrors(cudaSetDevice(device_id));
 
-		interp_DS_dealloc_device(&ids_gpu[is], ids_gpu_ptr[is]);
 		particles_info_dealloc_device(part_info_gpu_ptr[is]);
 		particles_positions_dealloc_device(&part_positions_gpu[is], part_positions_gpu_ptr[is]);
 	}
 
 
-	delete[] ids_gpu;
-	delete[] ids_gpu_ptr;
 	delete[] part_info_gpu;
 	delete[] part_info_gpu_ptr;
 	delete[] part_positions_gpu;

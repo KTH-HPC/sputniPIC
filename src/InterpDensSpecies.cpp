@@ -44,6 +44,7 @@ void interp_dens_species_allocate(struct grid *grd,
 /** deallocate interpolated densities per species */
 void interp_dens_species_deallocate(struct grid *grd,
                                     struct interpDensSpecies *ids) {
+#ifndef CUDA_UVM
   // deallocate 3D arrays
   delArr3(ids->rhon, grd->nxn, grd->nyn);
   delArr3(ids->rhoc, grd->nxc, grd->nyc);
@@ -58,6 +59,22 @@ void interp_dens_species_deallocate(struct grid *grd,
   delArr3(ids->pyy, grd->nxn, grd->nyn);
   delArr3(ids->pyz, grd->nxn, grd->nyn);
   delArr3(ids->pzz, grd->nxn, grd->nyn);
+#else
+  // deallocate 3D arrays
+  cuda_delArray3<FPinterp>(ids->rhon);
+  cuda_delArray3<FPinterp>(ids->rhoc);
+  // deallocate 3D arrays: J - current
+  cuda_delArray3<FPinterp>(ids->Jx);
+  cuda_delArray3<FPinterp>(ids->Jy);
+  cuda_delArray3<FPinterp>(ids->Jz);
+  // deallocate 3D arrays: pressure
+  cuda_delArray3<FPinterp>(ids->pxx);
+  cuda_delArray3<FPinterp>(ids->pxy);
+  cuda_delArray3<FPinterp>(ids->pxz);
+  cuda_delArray3<FPinterp>(ids->pyy);
+  cuda_delArray3<FPinterp>(ids->pyz);
+  cuda_delArray3<FPinterp>(ids->pzz);
+#endif
 }
 
 /** deallocate interpolated densities per species */

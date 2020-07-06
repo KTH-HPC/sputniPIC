@@ -14,6 +14,7 @@ void field_allocate(struct grid *grd, struct EMfield *field) {
 
 /** deallocate electric and magnetic field */
 void field_deallocate(struct grid *grd, struct EMfield *field) {
+#ifndef CUDA_UVM
   // E deallocate 3D arrays
   delArr3(field->Ex, grd->nxn, grd->nyn);
   delArr3(field->Ey, grd->nxn, grd->nyn);
@@ -22,6 +23,16 @@ void field_deallocate(struct grid *grd, struct EMfield *field) {
   delArr3(field->Bxn, grd->nxn, grd->nyn);
   delArr3(field->Byn, grd->nxn, grd->nyn);
   delArr3(field->Bzn, grd->nxn, grd->nyn);
+#else
+  // E deallocate 3D arrays
+  cuda_delArray3<FPfield>(field->Ex);
+  cuda_delArray3<FPfield>(field->Ey);
+  cuda_delArray3<FPfield>(field->Ez);
+  // B deallocate 3D arrays
+  cuda_delArray3<FPfield>(field->Bxn);
+  cuda_delArray3<FPfield>(field->Byn);
+  cuda_delArray3<FPfield>(field->Bzn);
+#endif
 }
 
 /** allocate electric and magnetic field */
@@ -48,6 +59,7 @@ void field_aux_allocate(struct grid *grd, struct EMfield_aux *field_aux) {
 
 /** deallocate */
 void field_aux_deallocate(struct grid *grd, struct EMfield_aux *field_aux) {
+#ifndef CUDA_UVM
   // Eth
   delArr3(field_aux->Exth, grd->nxn, grd->nyn);
   delArr3(field_aux->Eyth, grd->nxn, grd->nyn);
@@ -58,4 +70,16 @@ void field_aux_deallocate(struct grid *grd, struct EMfield_aux *field_aux) {
   delArr3(field_aux->Bzc, grd->nxc, grd->nyc);
   // Phi
   delArr3(field_aux->Phi, grd->nxc, grd->nyc);
+#else
+  // Eth
+  cuda_delArray3<FPfield>(field_aux->Exth);
+  cuda_delArray3<FPfield>(field_aux->Eyth);
+  cuda_delArray3<FPfield>(field_aux->Ezth);
+  // Bc
+  cuda_delArray3<FPfield>(field_aux->Bxc);
+  cuda_delArray3<FPfield>(field_aux->Byc);
+  cuda_delArray3<FPfield>(field_aux->Bzc);
+  // Phi
+  cuda_delArray3<FPfield>(field_aux->Phi);
+#endif
 }

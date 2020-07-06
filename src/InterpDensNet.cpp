@@ -20,6 +20,7 @@ void interp_dens_net_allocate(struct grid *grd, struct interpDensNet *idn) {
 
 /** deallocate interpolated densities per species */
 void interp_dens_net_deallocate(struct grid *grd, struct interpDensNet *idn) {
+#ifndef CUDA_UVM
   // charge density
   delArr3(idn->rhon, grd->nxn, grd->nyn);
   delArr3(idn->rhoc, grd->nxc, grd->nyc);
@@ -34,6 +35,22 @@ void interp_dens_net_deallocate(struct grid *grd, struct interpDensNet *idn) {
   delArr3(idn->pyy, grd->nxn, grd->nyn);
   delArr3(idn->pyz, grd->nxn, grd->nyn);
   delArr3(idn->pzz, grd->nxn, grd->nyn);
+#else
+  // charge density
+  cuda_delArray3<FPinterp>(idn->rhon);
+  cuda_delArray3<FPinterp>(idn->rhoc);
+  // current
+  cuda_delArray3<FPinterp>(idn->Jx);
+  cuda_delArray3<FPinterp>(idn->Jy);
+  cuda_delArray3<FPinterp>(idn->Jz);
+  // pressureay
+  cuda_delArray3<FPinterp>(idn->pxx);
+  cuda_delArray3<FPinterp>(idn->pxy);
+  cuda_delArray3<FPinterp>(idn->pxz);
+  cuda_delArray3<FPinterp>(idn->pyy);
+  cuda_delArray3<FPinterp>(idn->pyz);
+  cuda_delArray3<FPinterp>(idn->pzz);
+#endif
 }
 
 /* set species densities to zero */

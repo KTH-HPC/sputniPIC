@@ -5,6 +5,7 @@
 
 #ifdef USE_GPU
 #include <cuda_runtime.h>
+#include "gpu/cuda_helper.h"
 
 __host__ __device__ inline long get_idx(long v, long w, long x, long y, long z,
                                         long stride_w, long stride_x,
@@ -80,7 +81,11 @@ type ****newArr4(size_t sz1, size_t sz2, size_t sz3, size_t sz4) {
 template <class type>
 type *****newArr5(type **in, size_t sz1, size_t sz2, size_t sz3, size_t sz4,
                   size_t sz5) {
+#ifndef CUDA_UVM
   *in = newArr1<type>(sz1 * sz2 * sz3 * sz4 * sz5);
+#else
+  checkCudaErrors(cudaMallocManaged(in, sizeof(type) * sz1 * sz2 * sz3 * sz4 * sz5));
+#endif
 
   type *****arr = newArr4<type *>(sz1, sz2, sz3, sz4);
   type **arr2 = ***arr;
@@ -95,7 +100,11 @@ type *****newArr5(type **in, size_t sz1, size_t sz2, size_t sz3, size_t sz4,
 
 template <class type>
 type ****newArr4(type **in, size_t sz1, size_t sz2, size_t sz3, size_t sz4) {
+#ifndef CUDA_UVM
   *in = newArr1<type>(sz1 * sz2 * sz3 * sz4);
+#else
+  checkCudaErrors(cudaMallocManaged(in, sizeof(type) * sz1 * sz2 * sz3 * sz4));
+#endif
 
   type ****arr = newArr3<type *>(sz1, sz2, sz3);
   type **arr2 = **arr;
@@ -110,7 +119,11 @@ type ****newArr4(type **in, size_t sz1, size_t sz2, size_t sz3, size_t sz4) {
 
 template <class type>
 type ***newArr3(type **in, size_t sz1, size_t sz2, size_t sz3) {
+#ifndef CUDA_UVM
   *in = newArr1<type>(sz1 * sz2 * sz3);
+#else
+  checkCudaErrors(cudaMallocManaged(in, sizeof(type) * sz1 * sz2 * sz3));
+#endif
 
   type ***arr = newArr2<type *>(sz1, sz2);
   type **arr2 = *arr;
@@ -125,7 +138,11 @@ type ***newArr3(type **in, size_t sz1, size_t sz2, size_t sz3) {
 
 template <class type>
 type **newArr2(type **in, size_t sz1, size_t sz2) {
+#ifndef CUDA_UVM
   *in = newArr1<type>(sz1 * sz2);
+#else
+  checkCudaErrors(cudaMallocManaged(in, sizeof(type) * sz1 * sz2));
+#endif
   type **arr = newArr1<type *>(sz1);
   type *ptr = *in;
   for (size_t i = 0; i < sz1; i++) {
@@ -156,6 +173,28 @@ void delArray4(type ****arr) {
   delArray3(arr[0]);
   delete[](arr);
 }
+
+// cuda UVM
+template <class type>
+void cuda_delArray1(type *arr) {
+  cudaFree(arr);
+}
+template <class type>
+void cuda_delArray2(type **arr) {
+  cuda_delArray1<type>(arr[0]);
+  cudaFree(arr);
+}
+template <class type>
+void cuda_delArray3(type ***arr) {
+  cuda_delArray2<type>(arr[0]);
+  cudaFree(arr);
+}
+template <class type>
+void cuda_delArray4(type ****arr) {
+  cuda_delArray3<type>(arr[0]);
+  cudaFree(arr);
+}
+
 //
 // versions with dummy dimensions (for backwards compatibility)
 //

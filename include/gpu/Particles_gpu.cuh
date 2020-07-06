@@ -131,7 +131,11 @@ void particles_info_dealloc_device(
  * multiple of 512
  *
  */
-int batch_update_particles(cudaStream_t* stream, struct particles* part_cpu,
+int batch_update_particles(
+#ifdef CUDA_UVM
+                           int device_id,
+#endif
+                           cudaStream_t* stream, struct particles* part_cpu,
                            struct particles_positions_gpu* part_gpu,
                            struct particles_positions_gpu* part_gpu_ptr,
                            struct particles_info_gpu* part_info_gpu_ptr,

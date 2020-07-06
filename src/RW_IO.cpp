@@ -6,7 +6,9 @@
 #include "input_array.h"
 
 /** read the inputfile given via the command line */
-void readInputFile(struct parameters *param, int argc, char **argv) {
+void readInputFile(struct parameters *param, 
+                    struct directories *paths,
+                    int argc, char **argv) {
   // /////////////////////
   // Read the command line
   if (argc < 2) {
@@ -243,7 +245,7 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
   // Waves info
   param->Nwaves = config.read<int>("Nwaves", 1);
   param->dBoB0 = config.read<double>("dBoB0", 0.0);
-  param->WaveFile = config.read<string>("WaveFile", "WaveFile.txt");
+  paths->WaveFile = config.read<string>("WaveFile", "WaveFile.txt");
   param->energy = config.read<double>("energy", 0.018199864696222);
   param->pitch_angle = config.read<double>(
       "pitch_angle", 0.698131700797732);  // 40 degree default
@@ -265,12 +267,12 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
   param->DiagnosticsOutputCycle =
       config.read<int>("DiagnosticsOutputCycle", 10);
 
-  param->SaveDirName = config.read<string>("SaveDirName");
-  param->RestartDirName = config.read<string>("RestartDirName");
+  paths->SaveDirName = config.read<string>("SaveDirName");
+  paths->RestartDirName = config.read<string>("RestartDirName");
 }
 
 /** Print Simulation Parameters */
-void printParameters(struct parameters *param) {
+void printParameters(struct parameters *param, struct directories *paths) {
   std::cout << std::endl;
   std::cout << "-------------------------" << std::endl;
   std::cout << "sputniPIC Sim. Parameters" << std::endl;
@@ -288,13 +290,13 @@ void printParameters(struct parameters *param) {
   std::cout << "Number of cells (z)      = " << param->nzc << std::endl;
   std::cout << "Time step                = " << param->dt << std::endl;
   std::cout << "Number of cycles         = " << param->ncycles << std::endl;
-  std::cout << "Results saved in: " << param->SaveDirName << std::endl;
+  std::cout << "Results saved in: " << paths->SaveDirName << std::endl;
 }
 
 /** Save Simulation Parameters */
-void saveParameters(struct parameters *param) {
+void saveParameters(struct parameters *param, struct directories *paths) {
   string temp;
-  temp = param->SaveDirName + "/sputniPICparameters.txt";
+  temp = paths->SaveDirName + "/sputniPICparameters.txt";
 
   std::ofstream my_file(temp.c_str());
 
@@ -333,20 +335,20 @@ void saveParameters(struct parameters *param) {
   my_file << "CG error tolerance       = " << param->CGtol << std::endl;
   my_file << "Mover error tolerance    = " << param->NiterMover << std::endl;
   my_file << "---------------------------" << std::endl;
-  my_file << "Results saved in: " << param->SaveDirName << std::endl;
-  my_file << "Restart saved in: " << param->RestartDirName << std::endl;
+  my_file << "Results saved in: " << paths->SaveDirName << std::endl;
+  my_file << "Restart saved in: " << paths->RestartDirName << std::endl;
   my_file << "---------------------" << std::endl;
 
   my_file.close();
 }
 
-void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struct parameters *param) {
+void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struct directories *paths) {
   // stream file to be opened and managed
   string filename = "E";
   string temp;
   std::stringstream cc;
   cc << cycle;
-  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
+  temp = paths->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
 
@@ -387,7 +389,7 @@ void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struc
   my_fileE.close();
 
   filename = "B";
-  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
+  temp = paths->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
   std::ofstream my_file2(temp.c_str());
@@ -422,13 +424,13 @@ void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struc
 void VTK_Write_Scalars(int cycle, struct grid *grd,
                        struct interpDensSpecies *ids,
                        struct interpDensNet *idn,
-                       struct parameters *param) {
+                       struct directories *paths) {
   // stream file to be opened and managed
   string filename = "rhoe";
   string temp;
   std::stringstream cc;
   cc << cycle;
-  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
+  temp = paths->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
 
@@ -464,7 +466,7 @@ void VTK_Write_Scalars(int cycle, struct grid *grd,
   my_file.close();
 
   filename = "rhoi";
-  temp = param->SaveDirName +"/" + filename + "_" + cc.str();
+  temp = paths->SaveDirName +"/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
   std::ofstream my_file2(temp.c_str());
@@ -489,7 +491,7 @@ void VTK_Write_Scalars(int cycle, struct grid *grd,
   my_file2.close();
 
   filename = "rho_net";
-  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
+  temp = paths->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
   std::ofstream my_file1(temp.c_str());

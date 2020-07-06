@@ -5,7 +5,7 @@ CXXFLAGS=-std=c++11 -I./include -O3 -g -fopenmp
 
 NVCC=nvcc
 ARCH=-gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70 -gencode arch=compute_75,code=sm_75
-NVCCFLAGS=-DMEMCHECK -DUSE_GPU -lineinfo -I./include $(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wno-unknown-pragmas" --compiler-bindir=$(CXX) -DCUDA_UVM
+NVCCFLAGS=-DMEMCHECK -DUSE_GPU -lineinfo -I./include $(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wno-unknown-pragmas" --compiler-bindir=$(CXX)
 
 # Default to use host compiler and flags
 COMPILER=$(CXX)
@@ -16,13 +16,23 @@ SRCDIR=src
 # Check go GPU or CPU path
 ifeq ($(VERSION), GPU)
     FILES=$(shell find $(SRCDIR) -name '*.cu' -o -name '*.cpp')
-    SRCS=$(subst $(SRCDIR)/sputniPIC_CPU.cpp,,${FILES})
+    SRCS_1=$(subst $(SRCDIR)/sputniPIC_CPU.cpp,,${FILES})
+    SRCS=$(subst $(SRCDIR)/sputniPIC_GPU_UVM.cpp,,${SRCS_1})
 
     COMPILER=$(NVCC)
     COMPILER_FLAGS=$(NVCCFLAGS)
+else ifeq ($(VERSION), GPU_UVM)
+    FILES=$(shell find $(SRCDIR) -name '*.cu' -o -name '*.cpp')
+    SRCS_1=$(subst $(SRCDIR)/sputniPIC_CPU.cpp,,${FILES})
+    SRCS=$(subst $(SRCDIR)/sputniPIC_GPU.cpp,,${SRCS_1})
+
+    COMPILER=$(NVCC)
+    NVCCFLAGS+=-DCUDA_UVM #-DCUDA_UVM_PREFETCH
+    COMPILER_FLAGS=$(NVCCFLAGS)
 else
     FILES=$(shell find $(SRCDIR) -path $(SRCDIR)/gpu -prune -o -name '*.cpp' -print)
-    SRCS=$(subst $(SRCDIR)/sputniPIC_GPU.cpp,,${FILES})
+    SRCS_1=$(subst $(SRCDIR)/sputniPIC_GPU.cpp,,${FILES})
+    SRCS=$(subst $(SRCDIR)/sputniPIC_GPU_UVM.cpp,,${SRCS_1})
 
     COMPILER=$(CXX)
     COMPILER_FLAGS=$(CXXFLAGS)

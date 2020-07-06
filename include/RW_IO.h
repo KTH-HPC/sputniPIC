@@ -8,19 +8,21 @@
 #include "Parameters.h"
 
 /** read the inputfile given via the command line */
-void readInputFile(struct parameters *param, int argc, char **argv);
+void readInputFile(struct parameters *param, 
+                    struct directories *paths,
+                    int argc, char **argv);
 
 /** Print Simulation Parameters */
-void printParameters(struct parameters *param);
+void printParameters(struct parameters *param, struct directories *paths);
 
 /** Save Simulation Parameters */
-void saveParameters(struct parameters *param);
+void saveParameters(struct parameters *param, struct directories *paths);
 
-void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struct parameters *param);
+void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struct directories *paths);
 
 void VTK_Write_Scalars(int cycle, struct grid *grd,
                        struct interpDensSpecies *ids,
                        struct interpDensNet *idn,
-                       struct parameters *param);
+                       struct directories *paths);
 
 #endif

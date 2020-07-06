@@ -148,6 +148,9 @@ void particles_positions_dealloc_device(
  * Copy num_particles number of particles from cpu memory to gpu
  */
 void particles_positions_copy_to_device(
+#ifdef CUDA_UVM
+                int device_id,
+#endif
 		cudaStream_t* stream, 
 		struct particles* particles,
 		struct particles_positions_gpu* part_pos, 
@@ -179,6 +182,30 @@ void particles_positions_copy_to_device(
 			part_pos->q + idx_start_gpu, particles->q + idx_start_cpu,
 			num_particles * sizeof(FPinterp), cudaMemcpyHostToDevice, *stream));
 #endif
+#if defined CUDA_UVM && CUDA_UVM_PREFETCH
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->x + idx_start_gpu,
+                        num_particles * sizeof(FPpart), device_id, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->y + idx_start_gpu,
+                        num_particles * sizeof(FPpart), device_id, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->z + idx_start_gpu,
+                        num_particles * sizeof(FPpart), device_id, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->u + idx_start_gpu,
+                        num_particles * sizeof(FPpart), device_id, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->v + idx_start_gpu,
+                        num_particles * sizeof(FPpart), device_id, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->w + idx_start_gpu,
+                        num_particles * sizeof(FPpart), device_id, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->q + idx_start_gpu,
+                        num_particles * sizeof(FPinterp), device_id, *stream));
+#endif
+
 }
 
 /**
@@ -215,6 +242,29 @@ void particles_positions_copy_to_host(
 	checkCudaErrors(cudaMemcpyAsync(
 			particles->q + idx_start_cpu, part_pos->q + idx_start_gpu,
 			num_particles * sizeof(FPinterp), cudaMemcpyDeviceToHost, *stream));
+#endif
+#if defined CUDA_UVM && CUDA_UVM_PREFETCH
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->x + idx_start_gpu,
+                        num_particles * sizeof(FPpart), cudaCpuDeviceId, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->y + idx_start_gpu,
+                        num_particles * sizeof(FPpart), cudaCpuDeviceId, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->z + idx_start_gpu,
+                        num_particles * sizeof(FPpart), cudaCpuDeviceId, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->u + idx_start_gpu,
+                        num_particles * sizeof(FPpart), cudaCpuDeviceId, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->v + idx_start_gpu,
+                        num_particles * sizeof(FPpart), cudaCpuDeviceId, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->w + idx_start_gpu,
+                        num_particles * sizeof(FPpart), cudaCpuDeviceId, *stream));
+        checkCudaErrors(cudaMemPrefetchAsync(
+                        particles->q + idx_start_gpu,
+                        num_particles * sizeof(FPinterp), cudaCpuDeviceId, *stream));
 #endif
 }
 
@@ -265,6 +315,9 @@ void particles_info_dealloc_device(
  *
  */
 int batch_update_particles(
+#ifdef CUDA_UVM
+        int device_id,
+#endif
 	cudaStream_t* stream, 
 	struct particles* part_cpu,
 	struct particles_positions_gpu* part_gpu,
@@ -293,6 +346,9 @@ int batch_update_particles(
 		}
 
 		particles_positions_copy_to_device(
+#ifdef CUDA_UVM
+                        device_id,
+#endif
 			stream, 
 			part_cpu, 
 			part_gpu, 

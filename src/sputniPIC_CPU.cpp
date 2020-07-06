@@ -77,12 +77,12 @@ int main(int argc, char **argv){
     // ====================================================== //
     // Read the inputfile and fill the param structure
     // Read the input file name from command line
-
+    struct directories paths;
     parameters param;
-    readInputFile(&param,argc,argv);
+    readInputFile(&param,&paths,argc,argv);
     if(!mpi_rank){
-        printParameters(&param);
-        saveParameters(&param);
+        printParameters(&param, &paths);
+        saveParameters(&param, &paths);
     }
 
     // ====================================================== //
@@ -126,7 +126,7 @@ int main(int argc, char **argv){
     // Initialization global system
 
     if(!mpi_rank){
-        initGEM(&param,&grd,&field,&field_aux,part_global,ids);
+        initGEM(&param,&paths,&grd,&field,&field_aux,part_global,ids);
         //initUniform(&params_global,&grd,&field,&field_aux,part_global,ids);
     }
 
@@ -260,8 +260,8 @@ int main(int argc, char **argv){
         if(!mpi_rank){
             // write E, B, rho to disk
             if (cycle%param.FieldOutputCycle==0){
-                VTK_Write_Vectors(cycle, &grd,&field, &param);
-                VTK_Write_Scalars(cycle, &grd,ids,&idn, &param);
+                VTK_Write_Vectors(cycle, &grd,&field, &paths);
+                VTK_Write_Scalars(cycle, &grd,ids,&idn, &paths);
             }
         }
         // Update timer for io
