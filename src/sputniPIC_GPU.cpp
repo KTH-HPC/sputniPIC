@@ -53,6 +53,10 @@
 // Cuda memcheck and particle batching helper
 #include "gpu/cuda_helper.h"
 
+//#ifdef USE_CATALYST
+#include "Adaptor.h"
+//#endif
+
 
 double timer(
     double *mean, 
@@ -140,6 +144,25 @@ int main(int argc, char** argv) {
         initGEM(&param,&grd,&field,&field_aux,part_global,ids);
         //initUniform(&params_global,&grd,&field,&field_aux,part_global,ids);
     }
+
+//#ifdef USE_CATALYST
+    if (!mpi_rank)
+printf("init catalyst\n");
+      Adaptor::Initialize(param.ns,
+          param.B0x,
+          param.B0y,
+          param.B0z,
+      	  0,
+      	  0,
+      	  0,
+      	  grd.nxn,
+      	  grd.nyn,
+      	  grd.nzn,
+      	  grd.dx,
+      	  grd.dy,
+      	  grd.dz,
+          "./scripts/image.py");
+//#endif
 
     // ====================================================== //
     // Distribute system to slave processors.
@@ -412,9 +435,13 @@ int main(int argc, char** argv) {
 		// ====================================================== //
         // IO
 		if (!mpi_rank && cycle % param.FieldOutputCycle == 0) {
+//#ifdef USE_CATALYST
+printf("CoProcess\n");
+                        Adaptor::CoProcess(param.dt*cycle, cycle, &field);
+//#endif
 			// write E, B, rho to disk
-			VTK_Write_Vectors(cycle, &grd, &field, &param);
-			VTK_Write_Scalars(cycle, &grd, ids, &idn, &param);
+			VTK_Write_Vectors_Binary(cycle, &grd, &field, &param);
+			VTK_Write_Scalars_Binary(cycle, &grd, ids, &idn, &param);
 		}
 
         // Update timer for io

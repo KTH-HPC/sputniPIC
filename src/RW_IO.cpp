@@ -513,3 +513,221 @@ void VTK_Write_Scalars(int cycle, struct grid *grd,
 
   my_file1.close();
 }
+
+template <typename T>
+void SwapEnd(T& var)
+{
+  char* varArray = reinterpret_cast<char*>(&var);
+  for(long i = 0; i < static_cast<long>(sizeof(var)/2); i++)
+    std::swap(varArray[sizeof(var) - 1 - i],varArray[i]);
+}
+
+void VTK_Write_Vectors_Binary(int cycle, struct grid *grd, struct EMfield *field, struct parameters *param) {
+
+  // stream file to be opened and managed
+  std::ofstream vtk_field;
+
+  string filename = "E";
+  string temp;
+  std::stringstream cc;
+  cc << cycle;
+  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
+  temp += ".vtk";
+  std::cout << "Opening file: " << temp << std::endl;
+
+  int nxn = grd->nxn;
+  int nyn = grd->nyn;
+  int nzn = grd->nzn;
+
+  double dx = grd->dx;
+  double dy = grd->dy;
+  double dz = grd->dz;
+
+  FPfield Ex = 0, Ey = 0, Ez = 0;
+
+  std::cout << "Opening file: " << temp << std::endl;
+  vtk_field.open(temp.c_str(), std::ios::out | std::ios::app | std::ios::binary);
+
+  if (vtk_field) {
+    vtk_field << "# vtk DataFile Version 2.0" << std::endl;
+    vtk_field << "E field" << std::endl;
+    vtk_field << "BINARY" << std::endl;
+    vtk_field << "DATASET STRUCTURED_POINTS" << std::endl;
+    vtk_field << "DIMENSIONS " << (nxn - 3) << " " << (nyn - 3) << " " << (nzn - 3)
+              << std::endl;
+    vtk_field << "ORIGIN " << 0.0 << " " << 0.0 << " " << 0.0 << std::endl;
+    vtk_field << "SPACING " << dx << " " << dy << " " << dz << std::endl;
+    vtk_field << "POINT_DATA " << (nxn - 3) * (nyn - 3) * (nzn - 3) << std::endl;
+    if (sizeof(FPfield) == sizeof(double))
+      vtk_field << "VECTORS E double" << std::endl;
+    else
+      vtk_field << "VECTORS E float" << std::endl;
+
+    for (int k = 1; k < nzn - 2; k++)
+      for (int j = 1; j < nyn - 2; j++)
+        for (int i = 1; i < nxn - 2; i++) {
+          Ex = field->Ex[i][j][k];
+          if (fabs(Ex) < 1E-8) Ex = 0.0;
+          Ey = field->Ey[i][j][k];
+          if (fabs(Ey) < 1E-8) Ey = 0.0;
+          Ez = field->Ez[i][j][k];
+          if (fabs(Ez) < 1E-8) Ez = 0.0;
+          //my_fileE << Ex << " " << Ey << " " << Ez << std::endl;
+          SwapEnd(Ex);
+          SwapEnd(Ey);
+          SwapEnd(Ez);
+          vtk_field.write((char*)&Ex, sizeof(FPfield));
+          vtk_field.write((char*)&Ey, sizeof(FPfield));
+          vtk_field.write((char*)&Ez, sizeof(FPfield));
+        }
+  }
+  else {
+    std::cerr << "Error opening " << temp << std::endl;
+  }
+
+  vtk_field.close();
+
+  filename = "B";
+  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
+  temp += ".vtk";
+  std::cout << "Opening file: " << temp << std::endl;
+  vtk_field.open(temp.c_str(), std::ios::out | std::ios::app | std::ios::binary);
+  vtk_field << "# vtk DataFile Version 2.0" << std::endl;
+  vtk_field << "B field" << std::endl;
+  vtk_field << "BINARY" << std::endl;
+  vtk_field << "DATASET STRUCTURED_POINTS" << std::endl;
+  vtk_field << "DIMENSIONS " << (nxn - 3) << " " << (nyn - 3) << " " << (nzn - 3)
+            << std::endl;
+  vtk_field << "ORIGIN " << 0.0 << " " << 0.0 << " " << 0.0 << std::endl;
+  vtk_field << "SPACING " << dx << " " << dy << " " << dz << std::endl;
+  vtk_field << "POINT_DATA " << (nxn - 3) * (nyn - 3) * (nzn - 3) << std::endl;
+  vtk_field << "VECTORS B float" << std::endl;
+
+  float Bx = 0, By = 0, Bz = 0;
+
+  if (vtk_field) {
+    for (int k = 1; k < nzn - 2; k++)
+      for (int j = 1; j < nyn - 2; j++)
+        for (int i = 1; i < nxn - 2; i++) {
+          Bx = field->Bxn[i][j][k];
+          if (fabs(Bx) < 1E-8) Bx = 0.0;
+          By = field->Byn[i][j][k];
+          if (fabs(By) < 1E-8) By = 0.0;
+          Bz = field->Bzn[i][j][k];
+          if (fabs(Bz) < 1E-8) Bz = 0.0;
+          SwapEnd(Bx);
+          SwapEnd(By);
+          SwapEnd(Bz);
+          vtk_field.write((char*)&Bx, sizeof(float));
+          vtk_field.write((char*)&By, sizeof(float));
+          vtk_field.write((char*)&Bz, sizeof(float));
+        }
+  }
+  else {
+    std::cerr << "Error opening " << temp << std::endl;
+  }
+
+  vtk_field.close();
+}
+
+void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
+                       struct interpDensSpecies *ids,
+                       struct interpDensNet *idn,
+                       struct parameters *param) {
+  // stream file to be opened and managed
+  string filename = "rhoe";
+  string temp;
+  std::stringstream cc;
+  cc << cycle;
+  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
+  temp += ".vtk";
+  std::cout << "Opening file: " << temp << std::endl;
+
+  // get the number of nodes
+  int nxn = grd->nxn;
+  int nyn = grd->nyn;
+  int nzn = grd->nzn;
+
+  // get the grid spacing
+  double dx = grd->dx;
+  double dy = grd->dy;
+  double dz = grd->dz;
+
+  std::ofstream my_file(temp.c_str());
+  my_file << "# vtk DataFile Version 2.0" << std::endl;
+  my_file << "Electron Density - Current Sheet " << std::endl;
+  my_file << "BINARY" << std::endl;
+  my_file << "DATASET STRUCTURED_POINTS" << std::endl;
+  my_file << "DIMENSIONS " << (nxn - 3) << " " << (nyn - 3) << " " << (nzn - 3)
+          << std::endl;
+  my_file << "ORIGIN " << 0.0 << " " << 0.0 << " " << 0.0 << std::endl;
+  my_file << "SPACING " << dx << " " << dy << " " << dz << std::endl;
+  my_file << "POINT_DATA " << (nxn - 3) * (nyn - 3) * (nzn - 3) << std::endl;
+  my_file << "SCALARS rhoe float" << std::endl;
+  my_file << "LOOKUP_TABLE default" << std::endl;
+
+  FPinterp val;
+  for (int k = 1; k < nzn - 2; k++)
+    for (int j = 1; j < nyn - 2; j++)
+      for (int i = 1; i < nxn - 2; i++) {
+        val = ids[0].rhon[i][j][k];
+        SwapEnd(val);
+        my_file.write((char*)&val, sizeof(FPinterp));
+      }
+
+  my_file.close();
+
+  filename = "rhoi";
+  temp = param->SaveDirName +"/" + filename + "_" + cc.str();
+  temp += ".vtk";
+  std::cout << "Opening file: " << temp << std::endl;
+  std::ofstream my_file2(temp.c_str());
+  my_file2 << "# vtk DataFile Version 2.0" << std::endl;
+  my_file2 << "Ion Density - Current Sheet" << std::endl;
+  my_file2 << "BINARY" << std::endl;
+  my_file2 << "DATASET STRUCTURED_POINTS" << std::endl;
+  my_file2 << "DIMENSIONS " << (nxn - 3) << " " << (nyn - 3) << " " << (nzn - 3)
+           << std::endl;
+  my_file2 << "ORIGIN " << 0.0 << " " << 0.0 << " " << 0.0 << std::endl;
+  my_file2 << "SPACING " << dx << " " << dy << " " << dz << std::endl;
+  my_file2 << "POINT_DATA " << (nxn - 3) * (nyn - 3) * (nzn - 3) << std::endl;
+  my_file2 << "SCALARS rhoi float" << std::endl;
+  my_file2 << "LOOKUP_TABLE default" << std::endl;
+
+  for (int k = 1; k < nzn - 2; k++)
+    for (int j = 1; j < nyn - 2; j++)
+      for (int i = 1; i < nxn - 2; i++) {
+        val = ids[1].rhon[i][j][k];
+        SwapEnd(val);
+        my_file2.write((char*)&val, sizeof(FPinterp));
+      }
+
+  my_file2.close();
+
+  filename = "rho_net";
+  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
+  temp += ".vtk";
+  std::cout << "Opening file: " << temp << std::endl;
+  std::ofstream my_file1(temp.c_str());
+  my_file1 << "# vtk DataFile Version 2.0" << std::endl;
+  my_file1 << "Net Charge Density" << std::endl;
+  my_file1 << "BINARY" << std::endl;
+  my_file1 << "DATASET STRUCTURED_POINTS" << std::endl;
+  my_file1 << "DIMENSIONS " << (nxn - 3) << " " << (nyn - 3) << " " << (nzn - 3)
+           << std::endl;
+  my_file1 << "ORIGIN " << 0.0 << " " << 0.0 << " " << 0.0 << std::endl;
+  my_file1 << "SPACING " << dx << " " << dy << " " << dz << std::endl;
+  my_file1 << "POINT_DATA " << (nxn - 3) * (nyn - 3) * (nzn - 3) << std::endl;
+  my_file1 << "SCALARS rhonet float" << std::endl;
+  my_file1 << "LOOKUP_TABLE default" << std::endl;
+
+  for (int k = 1; k < nzn - 2; k++)
+    for (int j = 1; j < nyn - 2; j++)
+      for (int i = 1; i < nxn - 2; i++) {
+        val = idn->rhon[i][j][k];
+        SwapEnd(val);
+        my_file1.write((char*)&val, sizeof(FPinterp));
+      }
+
+  my_file1.close();
+}
