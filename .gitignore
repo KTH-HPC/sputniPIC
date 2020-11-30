@@ -49,3 +49,5 @@ vgcore.*
 
 *.nvvp
 *.bin
+
+__pycache__
