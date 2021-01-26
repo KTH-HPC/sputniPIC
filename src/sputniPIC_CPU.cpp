@@ -260,8 +260,8 @@ int main(int argc, char **argv){
         if(!mpi_rank){
             // write E, B, rho to disk
             if (cycle%param.FieldOutputCycle==0){
-                VTK_Write_Vectors(cycle, &grd,&field, &param);
-                VTK_Write_Scalars(cycle, &grd,ids,&idn, &param);
+                VTK_Write_Vectors_Binary(cycle, &grd,&field, &param);
+                VTK_Write_Scalars_Binary(cycle, &grd,ids,&idn, &param);
             }
         }
         // Update timer for io
