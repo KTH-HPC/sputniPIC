@@ -1,6 +1,8 @@
 
 # sputniPIC
+sputniPIC is a space plasma simulation software that uses the Particle-In-Cell (PIC) method.
 ## Building
+sputniPIC depends on MPI, OpenMP, and the optionally CUDA.
 ```bash
 $ git clone https://github.com/steven-chien/sputniPIC.git
 $ cd sputniPIC
@@ -100,4 +102,16 @@ Timing Cycle 2 : 4.94224 0.0 2.5049 0
 Mover: <average> <standard deviation>
 Field: <average> <standard deviation>
 IO: <average> <standard deviation>
+```
+## Cite us
+```
+@INPROCEEDINGS{9235052,
+  author={S. W. D. {Chien} and J. {Nylund} and G. {Bengtsson} and I. B. {Peng} and A. {Podobas} and S. {Markidis}},
+  booktitle={2020 IEEE 32nd International Symposium on Computer Architecture and High Performance Computing (SBAC-PAD)}, 
+  title={sputniPIC: An Implicit Particle-in-Cell Code for Multi-GPU Systems}, 
+  year={2020},
+  volume={},
+  number={},
+  pages={149-156},
+  doi={10.1109/SBAC-PAD49847.2020.00030}}
 ```
