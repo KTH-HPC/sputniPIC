@@ -107,6 +107,7 @@ IO: <average> <standard deviation>
 The software is released under BSD 2-Clause license. See LICENSE for details.
 
 ## Cite us
+If you find our implementation and [paper](https://arxiv.org/pdf/2008.04397.pdf) useful to your work, we would apprecite if you cite us with:
 ```
 @INPROCEEDINGS{9235052,
   author={S. W. D. {Chien} and J. {Nylund} and G. {Bengtsson} and I. B. {Peng} and A. {Podobas} and S. {Markidis}},
