@@ -103,6 +103,9 @@ Mover: <average> <standard deviation>
 Field: <average> <standard deviation>
 IO: <average> <standard deviation>
 ```
+## License
+The software is released under BSD 2-Clause license. See LICENSE for details.
+
 ## Cite us
 ```
 @INPROCEEDINGS{9235052,
