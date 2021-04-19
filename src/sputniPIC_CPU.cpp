@@ -44,6 +44,9 @@
 
 #include "mpi_comm.h"
 
+#ifdef USE_CATALYST
+#include "Adaptor.h"
+#endif
 
 
 // ====================================================== //
@@ -129,6 +132,21 @@ int main(int argc, char **argv){
         initGEM(&param,&grd,&field,&field_aux,part_global,ids);
         //initUniform(&params_global,&grd,&field,&field_aux,part_global,ids);
     }
+
+#ifdef USE_CATALYST
+    if (!mpi_rank)
+        printf("init catalyst\n");
+        Adaptor::Initialize("../scripts/image.py",
+      	                    0,
+      	                    0,
+      	                    0,
+      	                    grd.nxn,
+      	                    grd.nyn,
+      	                    grd.nzn,
+      	                    grd.dx,
+      	                    grd.dy,
+      	                    grd.dz);
+#endif
 
     // ====================================================== //
     // Distribute system to slave processors.
@@ -264,6 +282,12 @@ int main(int argc, char **argv){
                 VTK_Write_Scalars_Binary(cycle, &grd,ids,&idn, &param);
             }
         }
+
+#ifdef USE_CATALYST
+        printf("CoProcess\n");
+        Adaptor::CoProcess(param.dt*cycle, cycle, field.Bxn, field.Byn, field.Bzn, ids[0].rhon, ids[1].rhon);
+#endif
+
         // Update timer for io
         time0 = timer(&average[3], &variance[3], &cycle_time[3], time0, cycle);
 
@@ -299,6 +323,10 @@ int main(int argc, char **argv){
         std::cout << "   IO Time / Cycle      (s) = " << average[3] << "+-" << sqrt(variance[3] / (param.ncycles - 1)) << std::endl;
         std::cout << "******************************************************" << std::endl;
     }
+
+#ifdef USE_CATALYST
+    Adaptor::Finalize();
+#endif
 
     MPI_Finalize();
     // exit
