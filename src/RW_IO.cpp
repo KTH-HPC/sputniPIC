@@ -295,8 +295,15 @@ void printParameters(struct parameters *param) {
 void saveParameters(struct parameters *param) {
   string temp;
   temp = param->SaveDirName + "/sputniPICparameters.txt";
+  std::ofstream my_file;
 
-  std::ofstream my_file(temp.c_str());
+  try {
+    my_file.open(temp.c_str());
+  }
+  catch(const std::runtime_error& error) {
+    std::cerr << "Fail to open " << temp << std::endl;
+    std::exit(1);
+  }
 
   my_file << "-----------------------------" << std::endl;
   my_file << "- sputniPIC Sim. Parameters -" << std::endl;

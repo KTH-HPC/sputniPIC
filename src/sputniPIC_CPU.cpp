@@ -86,6 +86,14 @@ int main(int argc, char **argv){
     if(!mpi_rank){
         printParameters(&param);
         saveParameters(&param);
+        struct stat sb;
+        if (stat(param.RestartDirName.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
+            std::cout << "Output directory " + param.RestartDirName + " exists." << std::endl;
+        }
+        else {
+            std::cerr << "Output directory " + param.RestartDirName + " does not exists." << std::endl;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+        }
     }
 
     // ====================================================== //

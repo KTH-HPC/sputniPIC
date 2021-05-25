@@ -94,7 +94,8 @@ int main(int argc, char** argv) {
 			std::cout << "Output directory " + param.RestartDirName + " exists." << std::endl;
 		}
 		else {
-			throw std::runtime_error("Output directory " + param.RestartDirName + " does not exists.");
+			std::cerr << "Output directory " + param.RestartDirName + " does not exists." << std::endl;
+                        MPI_Abort(MPI_COMM_WORLD, 1);
 		}
 	}
 
