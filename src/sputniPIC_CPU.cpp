@@ -41,10 +41,12 @@
 
 #include <omp.h>
 #include <mpi.h>
+#include <sys/stat.h>
+#include <stdexcept>
 
 #include "mpi_comm.h"
 
-#ifdef USE_CATALYST
+#if defined(USE_CATALYST) && 0
 #include "Adaptor.h"
 #endif
 
@@ -141,7 +143,7 @@ int main(int argc, char **argv){
         //initUniform(&params_global,&grd,&field,&field_aux,part_global,ids);
     }
 
-#ifdef USE_CATALYST
+#if defined(USE_CATALYST) && 0
     if (!mpi_rank)
         printf("init catalyst\n");
         Adaptor::Initialize("../scripts/image.py",
@@ -291,7 +293,7 @@ int main(int argc, char **argv){
             }
         }
 
-#ifdef USE_CATALYST
+#if defined(USE_CATALYST) && 0
         printf("CoProcess\n");
         Adaptor::CoProcess(param.dt*cycle, cycle, field.Bxn, field.Byn, field.Bzn, ids[0].rhon, ids[1].rhon);
 #endif
@@ -332,7 +334,7 @@ int main(int argc, char **argv){
         std::cout << "******************************************************" << std::endl;
     }
 
-#ifdef USE_CATALYST
+#if defined(USE_CATALYST) && 0
     Adaptor::Finalize();
 #endif
 

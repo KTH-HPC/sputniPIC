@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(sputniPIC)
 enable_language(CXX)
 
-option(BUILD_PARAVIEW "Build ParaView support" OFF)
+option(Build_ParaView "Build ParaView support" OFF)
 option(BUILD_GPU "Build GPU binary" ON)
 option(BUILD_CPU "Build CPU binary" ON)
 
@@ -52,7 +52,7 @@ set(CUDA_SRC
     src/gpu/Particles_gpu.cu
 )
 
-if(ParaView_FOUND AND BUILD_PARAVIEW)
+if(ParaView_FOUND AND Build_ParaView)
     find_package(ParaView 5.8 REQUIRED COMPONENTS PythonCatalyst)
     if (ParaView_FOUND)
         add_library(catalystAdaptor STATIC src/Adaptor.cpp)
@@ -73,7 +73,7 @@ if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND)
         ${MPI_INCLUDE_PATH})
     target_compile_options(sputniPIC PUBLIC -O3 ${ARCH} -ffast-math)
 
-    if (ParaView_FOUND AND BUILD_PARAVIEW)
+    if (ParaView_FOUND AND Build_ParaView)
         target_compile_definitions(sputniPIC PUBLIC -DUSE_CATALYST)
         target_link_libraries(sputniPIC PRIVATE catalystAdaptor)
     endif()
