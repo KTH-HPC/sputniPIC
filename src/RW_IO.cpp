@@ -1,5 +1,6 @@
 #include <string.h>
 #include <cmath>
+#include <cassert>
 
 #include "ConfigFile.h"
 #include "RW_IO.h"
@@ -48,10 +49,35 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
   /** number of particle of subcycles in the mover */
   param->n_sub_cycles = config.read<int>("n_sub_cycles", 1);
 
+  /** should particles be sorted **/
+  param->sort = config.read<bool>("sort", false);
+  /** sort particles every n iterations **/
+  param->sort_every_n = config.read<long>("sort_every_n", 50);
+  /** number of cells per side in a sorting bin **/
+  param->sort_cps = config.read<long>("sort_cps", 4);
+
   /** number of particle batches per species when run on GPU **/
   param->number_of_batches = config.read<int>("number_of_batches", 16);
   /** number of threads per block to use when running kernels on GPU **/
   param->threads_per_block = config.read<long>("threads_per_block", 256);
+
+  /** track particles and write to file **/
+  param->track_particles = config.read<bool>("track_particles", false);
+  /** number of particles to track **/
+  param->n_tracked_particles = config.read<long>("n_tracked_particles", 1000);
+  /** start cycle for sampling **/
+  param->tracking_start_cycle = config.read<long>("tracking_start_cycle", 0);
+  /** end cycle for sampling **/
+  param->tracking_end_cycle = config.read<long>("tracking_end_cycle", 0);
+  /** size of tracking sampling box - X direction **/
+  param->tracking_Lx = config.read<double>("tracking_Lx", 1);
+  /** size of tracking sampling box - Y direction **/
+  param->tracking_Ly = config.read<double>("tracking_Ly", 1);
+  /** size of tracking sampling box - Z direction **/
+  param->tracking_Lz = config.read<double>("tracking_Lz", 1);
+  /** file for saving tracked particles **/
+  param->tracked_particles_filename 
+    = config.read<string>("tracked_particles_filename", "tracked_particles"); 
 
   /** simulation box length - X direction   */
   param->Lx = config.read<double>("Lx", 1);
@@ -295,8 +321,15 @@ void printParameters(struct parameters *param) {
 void saveParameters(struct parameters *param) {
   string temp;
   temp = param->SaveDirName + "/sputniPICparameters.txt";
+  std::ofstream my_file;
 
-  std::ofstream my_file(temp.c_str());
+  try {
+    my_file.open(temp.c_str());
+  }
+  catch(const std::runtime_error& error) {
+    std::cerr << "Fail to open " << temp << std::endl;
+    std::exit(1);
+  }
 
   my_file << "-----------------------------" << std::endl;
   my_file << "- sputniPIC Sim. Parameters -" << std::endl;
@@ -338,6 +371,122 @@ void saveParameters(struct parameters *param) {
   my_file << "---------------------" << std::endl;
 
   my_file.close();
+}
+
+void HDF5_Write_Particles(int cycle, struct particles *part_local, struct parameters *param)
+{
+  hid_t status, file_id, group_id, dataspace_id, dataset_id, attr_space_id, attr_id;
+  int mpi_rank, mpi_comm_size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_size);
+
+  string path = param->SaveDirName + "/" + param->tracked_particles_filename + "_proc" + std::to_string(mpi_rank) + "_" + std::to_string(cycle) + ".h5";
+  file_id     = H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+  attr_space_id = H5Screate(H5S_SCALAR);
+  attr_id       = H5Acreate(file_id, "Cycle", H5T_NATIVE_INT, attr_space_id, H5P_DEFAULT, H5P_DEFAULT);
+  status        = H5Awrite(attr_id, H5T_NATIVE_INT, &cycle);
+  assert(status == 0);
+  status = H5Aclose(attr_id);
+  assert(status == 0);
+
+  attr_id       = H5Acreate(file_id, "Process", H5T_NATIVE_INT, attr_space_id, H5P_DEFAULT, H5P_DEFAULT);
+  status        = H5Awrite(attr_id, H5T_NATIVE_INT, &mpi_rank);
+  assert(status == 0);
+  status = H5Aclose(attr_id);
+  assert(status == 0);
+
+  attr_id       = H5Acreate(file_id, "No. Processes", H5T_NATIVE_INT, attr_space_id, H5P_DEFAULT, H5P_DEFAULT);
+  status        = H5Awrite(attr_id, H5T_NATIVE_INT, &mpi_comm_size);
+  assert(status == 0);
+  status = H5Aclose(attr_id);
+  assert(status == 0);
+
+  status = H5Sclose(attr_space_id);
+  assert(status == 0);
+
+  for (int species = 0; species < param->ns; species++) {
+    hsize_t dims[] { part_local[species].nop };
+    string group_name = "/species_" + std::to_string(species);
+
+    group_id     = H5Gcreate(file_id, group_name.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    assert(group_id >= 0);
+
+    dataspace_id = H5Screate_simple(1, dims, NULL);
+    assert(dataspace_id >= 0);
+
+    dataset_id   = H5Dcreate(group_id, "x", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    assert(dataset_id >= 0);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].x);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id   = H5Dcreate(group_id, "y", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].y);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id   = H5Dcreate(group_id, "z", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].z);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id   = H5Dcreate(group_id, "u", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].u);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id   = H5Dcreate(group_id, "v", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].v);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id   = H5Dcreate(group_id, "w", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].w);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    status       = H5Gclose(group_id);
+    assert(status == 0);
+  }
+
+  status = H5Fclose(file_id);
+  assert(status == 0);
+}
+
+void saveParticlePositions(struct parameters *param, struct particles *part, int cycle, int species) {
+  int world_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  string path = param->SaveDirName + "/" + param->tracked_particles_filename + "_species" + std::to_string(species) + "proc" + std::to_string(world_rank) + ".csv";
+
+  std::ofstream particlesPosFile;
+
+  if (cycle == param->tracking_start_cycle) {
+    particlesPosFile.open(path.c_str(), std::ofstream::out);
+    particlesPosFile << "x_0, y_0, z_0, u_0, v_0, w_0, x_1, y_1, z_1, u_1, v_1, w_1, ..." << std::endl;
+  }
+  else {
+    particlesPosFile.open(path.c_str(), std::ofstream::out | std::ofstream::app);
+  }
+
+  std::ostringstream line;
+  for (size_t p = 0; p < part->npmax; p++) {
+    if (part->track_particle[p]) {
+      line << part->x[p] << "," << part->y[p] << "," << part->z[p] 
+        << "," << part->u[p] << "," << part->v[p] << "," << part->w[p] << ",";
+    }
+  }
+  line.seekp(-1, line.cur); // Remove trailing comma ","
+  line << std::endl;
+  particlesPosFile << line.str();
+
+  particlesPosFile.close();
 }
 
 void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struct parameters *param) {

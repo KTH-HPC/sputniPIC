@@ -1,11 +1,14 @@
-VERSION=CPU
+VERSION=GPU
 
 CXX=mpicxx
-CXXFLAGS=-std=c++11 -I./include -O3 -g -fopenmp
+CXXFLAGS=-std=c++11 -I./include -O3 -g -fopenmp -Wall
 
+HDF5_LIBS=-L/usr/local/lib -lhdf5
+HDF5_CFLAGS=-I/usr/local/include
 NVCC=nvcc
+
 ARCH=-gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70
-NVCCFLAGS=-DMEMCHECK -DUSE_GPU -lineinfo -I./include $(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wno-unknown-pragmas" --compiler-bindir=$(CXX)
+NVCCFLAGS=-DMEMCHECK -DUSE_GPU -lineinfo $(HDF5_CFLAGS) -I./include $(ARCH) -std=c++11 -O3 -g -Xcompiler "-fopenmp -Wall -Wno-unknown-pragmas" --compiler-bindir=$(CXX)
 
 # Default to use host compiler and flags
 COMPILER=$(CXX)
@@ -46,7 +49,7 @@ ${BIN}:
 
 # Binary linkage
 $(BIN)/$(TARGET): $(OBJS)
-	$(COMPILER) $(COMPILER_FLAGS) $+ -o $@
+	$(COMPILER) $(COMPILER_FLAGS) $+ -o $@ $(HDF5_LIBS)
 
 # GPU objects
 $(SRCDIR)/%.o: $(SRCDIR)/%.cu

@@ -41,7 +41,7 @@ Thumbs.db
 
 *.out
 *.bin
-*.txt
+#*.txt
 npbparams.h
 setparams
 vgcore.*
@@ -49,3 +49,10 @@ vgcore.*
 
 *.nvvp
 *.bin
+
+__pycache__
+*.vscode
+*.tar.bz2
+*.png
+*.m
+*.csv

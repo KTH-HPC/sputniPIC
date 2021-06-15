@@ -8,52 +8,54 @@ void particle_allocate_host(
 	struct particles* part,
 	int is
 	) {
-	// set species ID
-	part->species_ID = is;
-	// number of particles
-	part->nop = param->np[is];
-	// maximum number of particles
-	part->npmax = param->npMax[is];
-
-	// choose a different number of mover iterations for ions and electrons
-	part->NiterMover = param->NiterMover;
-	part->n_sub_cycles = param->n_sub_cycles;
-
-	// particles per cell
-	part->npcelx = param->npcelx[is];
-	part->npcely = param->npcely[is];
-	part->npcelz = param->npcelz[is];
-	part->npcel = part->npcelx * part->npcely * part->npcelz;
-
-	// cast it to required precision
-	part->qom = (FPpart)param->qom[is];
-
-	long npmax = part->npmax;
-
-	// initialize drift and thermal velocities
-	// drift
-	part->u0 = (FPpart)param->u0[is];
-	part->v0 = (FPpart)param->v0[is];
-	part->w0 = (FPpart)param->w0[is];
-	// thermal
-	part->uth = (FPpart)param->uth[is];
-	part->vth = (FPpart)param->vth[is];
-	part->wth = (FPpart)param->wth[is];
-
-	//////////////////////////////
-	/// ALLOCATION PARTICLE ARRAYS
-	//////////////////////////////
-	checkCudaErrors(cudaMallocHost(&part->x, sizeof(FPpart) * npmax));
-	checkCudaErrors(cudaMallocHost(&part->y, sizeof(FPpart) * npmax));
-	checkCudaErrors(cudaMallocHost(&part->z, sizeof(FPpart) * npmax));
-
-	checkCudaErrors(cudaMallocHost(&part->u, sizeof(FPpart) * npmax));
-	checkCudaErrors(cudaMallocHost(&part->v, sizeof(FPpart) * npmax));
-	checkCudaErrors(cudaMallocHost(&part->w, sizeof(FPpart) * npmax));
-
-	checkCudaErrors(cudaMallocHost(&part->q, sizeof(FPinterp) * npmax));
-	checkCudaErrors(cudaMallocHost(&part->track_particle, sizeof(bool) * npmax));
-	
+    // set species ID
+    part->species_ID = is;
+    // number of particles
+    part->nop = param->np[is];
+    // maximum number of particles
+    part->npmax = param->npMax[is];
+    
+    // choose a different number of mover iterations for ions and electrons
+    part->NiterMover = param->NiterMover;
+    part->n_sub_cycles = param->n_sub_cycles;
+    
+    // particles per cell
+    part->npcelx = param->npcelx[is];
+    part->npcely = param->npcely[is];
+    part->npcelz = param->npcelz[is];
+    part->npcel = part->npcelx * part->npcely * part->npcelz;
+    
+    // cast it to required precision
+    part->qom = (FPpart)param->qom[is];
+    
+    long npmax = part->npmax;
+    
+    // initialize drift and thermal velocities
+    // drift
+    part->u0 = (FPpart)param->u0[is];
+    part->v0 = (FPpart)param->v0[is];
+    part->w0 = (FPpart)param->w0[is];
+    // thermal
+    part->uth = (FPpart)param->uth[is];
+    part->vth = (FPpart)param->vth[is];
+    part->wth = (FPpart)param->wth[is];
+    
+    //////////////////////////////
+    /// ALLOCATION PARTICLE ARRAYS
+    //////////////////////////////
+    checkCudaErrors(cudaMallocHost(&part->x, sizeof(FPpart) * npmax));
+    checkCudaErrors(cudaMallocHost(&part->y, sizeof(FPpart) * npmax));
+    checkCudaErrors(cudaMallocHost(&part->z, sizeof(FPpart) * npmax));
+    
+    checkCudaErrors(cudaMallocHost(&part->u, sizeof(FPpart) * npmax));
+    checkCudaErrors(cudaMallocHost(&part->v, sizeof(FPpart) * npmax));
+    checkCudaErrors(cudaMallocHost(&part->w, sizeof(FPpart) * npmax));
+    
+    checkCudaErrors(cudaMallocHost(&part->q, sizeof(FPinterp) * npmax));
+    
+    // Allocate 
+    part->track_particle = new bool[npmax];
+    std::fill_n(part->track_particle, npmax, 0);
 }
 
 /** deallocate particles allocated with */
@@ -67,7 +69,8 @@ void particle_deallocate_host(struct particles* part) {
 	checkCudaErrors(cudaFreeHost(part->w));
 
 	checkCudaErrors(cudaFreeHost(part->q));
-	checkCudaErrors(cudaFreeHost(part->track_particle));
+	//checkCudaErrors(cudaFreeHost(part->track_particle));
+        delete[] part->track_particle;
 }
 
 void particles_positions_alloc_device(

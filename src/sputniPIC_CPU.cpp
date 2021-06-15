@@ -41,9 +41,14 @@
 
 #include <omp.h>
 #include <mpi.h>
+#include <sys/stat.h>
+#include <stdexcept>
 
 #include "mpi_comm.h"
 
+#if defined(USE_CATALYST) && 0
+#include "Adaptor.h"
+#endif
 
 
 // ====================================================== //
@@ -83,6 +88,14 @@ int main(int argc, char **argv){
     if(!mpi_rank){
         printParameters(&param);
         saveParameters(&param);
+        struct stat sb;
+        if (stat(param.RestartDirName.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
+            std::cout << "Output directory " + param.RestartDirName + " exists." << std::endl;
+        }
+        else {
+            std::cerr << "Output directory " + param.RestartDirName + " does not exists." << std::endl;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+        }
     }
 
     // ====================================================== //
@@ -130,6 +143,21 @@ int main(int argc, char **argv){
         //initUniform(&params_global,&grd,&field,&field_aux,part_global,ids);
     }
 
+#if defined(USE_CATALYST) && 0
+    if (!mpi_rank)
+        printf("init catalyst\n");
+        Adaptor::Initialize("../scripts/image.py",
+      	                    0,
+      	                    0,
+      	                    0,
+      	                    grd.nxn,
+      	                    grd.nyn,
+      	                    grd.nzn,
+      	                    grd.dx,
+      	                    grd.dy,
+      	                    grd.dz);
+#endif
+
     // ====================================================== //
     // Distribute system to slave processors.
     // We do particle decomposition, shared domain. 
@@ -165,9 +193,9 @@ int main(int argc, char **argv){
     double iStart = MPI_Wtime();
     double time0 = iStart;
     // avg, variance and last cycle exec time for mover, interpolation, field solver and io, respectively
-    double average[4] = {0.,0.,0.,0.};
-    double variance[4] = {0.,0.,0.,0.};
-    double cycle_time[4] = {0.,0.,0.,0.};
+    double average[5] = {0.,0.,0.,0.,0.};
+    double variance[5] = {0.,0.,0.,0.,0.};
+    double cycle_time[5] = {0.,0.,0.,0.,0.};
     
     // **********************************************************//
     // **** Start the Simulation!  Cycle index start from 1  *** //
@@ -186,7 +214,19 @@ int main(int argc, char **argv){
             std::cout << "*** Particle Mover ***" << std::endl;
         }
 
-        time0 = MPI_Wtime();
+	time0 = MPI_Wtime();
+
+        if (param.sort) {
+          if (cycle % param.sort_every_n == 0 && cycle != 0) {
+            std::cout << "Sorting particles." << std::endl;
+            for (int is = 0; is < param.ns; is++) {
+              particle_sort(&param, &part[is], &grd);
+            }
+          }
+        }
+
+        // timer for sorting
+	time0 = timer(&average[0], &variance[0], &cycle_time[0], time0, cycle);
 
         // #pragma omp parallel for // only if use mover_PC_V
         for (int is=0; is < param.ns; is++){
@@ -196,7 +236,7 @@ int main(int argc, char **argv){
 
         }
 
-        time0 = timer(&average[0], &variance[0], &cycle_time[0], time0, cycle);
+        time0 = timer(&average[1], &variance[1], &cycle_time[1], time0, cycle);
 
         // ====================================================== //
         // interpolation particle to grid
@@ -225,7 +265,7 @@ int main(int argc, char **argv){
 		}
 
         // Update timer for interpolation
-        time0 = timer(&average[1], &variance[1], &cycle_time[1], time0, cycle);
+        time0 = timer(&average[2], &variance[2], &cycle_time[2], time0, cycle);
 
         // ====================================================== //
         // From here, master calculates new EM field. slaves idle
@@ -253,7 +293,7 @@ int main(int argc, char **argv){
         // broadcast EM field data from master process to slaves
         mpi_broadcast_field(&grd, &field);
         // Update timer for field solver
-        time0 = timer(&average[2], &variance[2], &cycle_time[2], time0, cycle);
+        time0 = timer(&average[3], &variance[3], &cycle_time[3], time0, cycle);
             
         // ====================================================== //
         // IO
@@ -264,11 +304,21 @@ int main(int argc, char **argv){
                 VTK_Write_Scalars_Binary(cycle, &grd,ids,&idn, &param);
             }
         }
+
+        if (cycle % param.ParticlesOutputCycle == 0) {
+             HDF5_Write_Particles(cycle, part, &param);
+        }
+
+#if defined(USE_CATALYST) && 0
+        printf("CoProcess\n");
+        Adaptor::CoProcess(param.dt*cycle, cycle, field.Bxn, field.Byn, field.Bzn, ids[0].rhon, ids[1].rhon);
+#endif
+
         // Update timer for io
-        time0 = timer(&average[3], &variance[3], &cycle_time[3], time0, cycle);
+        time0 = timer(&average[4], &variance[4], &cycle_time[4], time0, cycle);
 
         if(!mpi_rank)
-            std::cout << "Timing Cycle " << cycle << " : " << cycle_time[0] << " " << cycle_time[1] << " " << cycle_time[2] << " " << cycle_time[3] << std::endl;
+            std::cout << "Timing Cycle " << cycle << " : " << cycle_time[0] << " " << cycle_time[1] << " " << cycle_time[2] << " " << cycle_time[3] << " " << cycle_time[4] << std::endl;
     }  // end of one PIC cycle
     
     /// Release the resources
@@ -293,12 +343,17 @@ int main(int argc, char **argv){
         std::cout << std::endl;
         std::cout << "******************************************************" << std::endl;
         std::cout << "   Tot. Simulation Time (s) = " << iElaps << std::endl;
-        std::cout << "   Mover Time / Cycle   (s) = " << average[0] << "+-" << sqrt(variance[0] / (param.ncycles - 1)) << std::endl;
-        std::cout << "   Interp. Time / Cycle (s) = " << average[1] << "+-" << sqrt(variance[1] / (param.ncycles - 1)) << std::endl;
-        std::cout << "   Field Time / Cycle   (s) = " << average[2] << "+-" << sqrt(variance[2] / (param.ncycles - 1)) << std::endl;
-        std::cout << "   IO Time / Cycle      (s) = " << average[3] << "+-" << sqrt(variance[3] / (param.ncycles - 1)) << std::endl;
+        std::cout << "   Part. Sort / Cycle   (s) = " << average[0] << "+-" << sqrt(variance[0] / (param.ncycles - 1)) << std::endl;
+        std::cout << "   Mover Time / Cycle   (s) = " << average[1] << "+-" << sqrt(variance[1] / (param.ncycles - 1)) << std::endl;
+        std::cout << "   Interp. Time / Cycle (s) = " << average[2] << "+-" << sqrt(variance[2] / (param.ncycles - 1)) << std::endl;
+        std::cout << "   Field Time / Cycle   (s) = " << average[3] << "+-" << sqrt(variance[3] / (param.ncycles - 1)) << std::endl;
+        std::cout << "   IO Time / Cycle      (s) = " << average[4] << "+-" << sqrt(variance[4] / (param.ncycles - 1)) << std::endl;
         std::cout << "******************************************************" << std::endl;
     }
+
+#if defined(USE_CATALYST) && 0
+    Adaptor::Finalize();
+#endif
 
     MPI_Finalize();
     // exit
