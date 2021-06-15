@@ -1,5 +1,6 @@
 #include <string.h>
 #include <cmath>
+#include <cassert>
 
 #include "ConfigFile.h"
 #include "RW_IO.h"
@@ -372,8 +373,97 @@ void saveParameters(struct parameters *param) {
   my_file.close();
 }
 
+void HDF5_Write_Particles(int cycle, struct particles *part_local, struct parameters *param)
+{
+  hid_t status, file_id, group_id, dataspace_id, dataset_id, attr_space_id, attr_id;
+  int mpi_rank, mpi_comm_size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_size);
+
+  string path = param->SaveDirName + "/" + param->tracked_particles_filename + "_proc" + std::to_string(mpi_rank) + "_" + std::to_string(cycle) + ".h5";
+  file_id     = H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+  attr_space_id = H5Screate(H5S_SCALAR);
+  attr_id       = H5Acreate(file_id, "Cycle", H5T_NATIVE_INT, attr_space_id, H5P_DEFAULT, H5P_DEFAULT);
+  status        = H5Awrite(attr_id, H5T_NATIVE_INT, &cycle);
+  assert(status == 0);
+  status = H5Aclose(attr_id);
+  assert(status == 0);
+
+  attr_id       = H5Acreate(file_id, "Process", H5T_NATIVE_INT, attr_space_id, H5P_DEFAULT, H5P_DEFAULT);
+  status        = H5Awrite(attr_id, H5T_NATIVE_INT, &mpi_rank);
+  assert(status == 0);
+  status = H5Aclose(attr_id);
+  assert(status == 0);
+
+  attr_id       = H5Acreate(file_id, "No. Processes", H5T_NATIVE_INT, attr_space_id, H5P_DEFAULT, H5P_DEFAULT);
+  status        = H5Awrite(attr_id, H5T_NATIVE_INT, &mpi_comm_size);
+  assert(status == 0);
+  status = H5Aclose(attr_id);
+  assert(status == 0);
+
+  status = H5Sclose(attr_space_id);
+  assert(status == 0);
+
+  for (int species = 0; species < param->ns; species++) {
+    hsize_t dims[] { part_local[species].nop };
+    string group_name = "/species_" + std::to_string(species);
+
+    group_id     = H5Gcreate(file_id, group_name.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    assert(group_id >= 0);
+
+    dataspace_id = H5Screate_simple(1, dims, NULL);
+    assert(dataspace_id >= 0);
+
+    dataset_id   = H5Dcreate(group_id, "x", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    assert(dataset_id >= 0);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].x);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id   = H5Dcreate(group_id, "y", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].y);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id   = H5Dcreate(group_id, "z", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].z);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id   = H5Dcreate(group_id, "u", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].u);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id   = H5Dcreate(group_id, "v", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].v);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id   = H5Dcreate(group_id, "w", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].w);
+    assert(status == 0);
+    status       = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    status       = H5Gclose(group_id);
+    assert(status == 0);
+  }
+
+  status = H5Fclose(file_id);
+  assert(status == 0);
+}
+
 void saveParticlePositions(struct parameters *param, struct particles *part, int cycle, int species) {
-  string path = param->SaveDirName + "/" + param->tracked_particles_filename + "_species" + std::to_string(species) + ".csv";
+  int world_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  string path = param->SaveDirName + "/" + param->tracked_particles_filename + "_species" + std::to_string(species) + "proc" + std::to_string(world_rank) + ".csv";
 
   std::ofstream particlesPosFile;
 

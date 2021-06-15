@@ -91,6 +91,9 @@ w0 = 0.0065 -0.0325 0.0 0.0
 # Output for field 
 FieldOutputCycle=10
 
+# Output for particles
+ParticlesOutputCycle=1
+
 # Poisson Correction
 PoissonCorrection=true
 

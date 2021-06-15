@@ -429,6 +429,10 @@ int main(int argc, char** argv) {
 			VTK_Write_Scalars(cycle, &grd, ids, &idn, &param);
 		}
 
+                if (cycle % param.ParticlesOutputCycle == 0) {
+                    HDF5_Write_Particles(cycle, part, &param);
+                }
+
         // Update timer for io
         time0 = timer(&average[4], &variance[4], &cycle_time[4], time0, cycle);
 

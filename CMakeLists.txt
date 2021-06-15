@@ -22,6 +22,7 @@ endif()
 
 find_package(OpenMP)
 find_package(MPI)
+find_package(HDF5 COMPONENTS C)
 
 set(CXX_SRC
     src/mpi_comm.cpp
@@ -63,13 +64,15 @@ if(ParaView_FOUND AND Build_ParaView)
     endif()
 endif()
 
-if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND)
+if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND AND HDF5_FOUND)
     add_library(sputniPIC STATIC ${CXX_SRC})
     target_link_libraries(sputniPIC PUBLIC
+        ${HDF5_C_LIBRARIES}
         OpenMP::OpenMP_CXX
         MPI::MPI_CXX)
     target_include_directories(sputniPIC PUBLIC 
         include
+        ${HDF5_INCLUDE_DIRS}
         ${MPI_INCLUDE_PATH})
     target_compile_options(sputniPIC PUBLIC -O3 ${ARCH} -ffast-math)
 

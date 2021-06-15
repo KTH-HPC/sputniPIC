@@ -305,6 +305,10 @@ int main(int argc, char **argv){
             }
         }
 
+        if (cycle % param.ParticlesOutputCycle == 0) {
+             HDF5_Write_Particles(cycle, part, &param);
+        }
+
 #if defined(USE_CATALYST) && 0
         printf("CoProcess\n");
         Adaptor::CoProcess(param.dt*cycle, cycle, field.Bxn, field.Byn, field.Bzn, ids[0].rhon, ids[1].rhon);

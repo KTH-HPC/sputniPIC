@@ -69,7 +69,8 @@ void particle_deallocate_host(struct particles* part) {
 	checkCudaErrors(cudaFreeHost(part->w));
 
 	checkCudaErrors(cudaFreeHost(part->q));
-	checkCudaErrors(cudaFreeHost(part->track_particle));
+	//checkCudaErrors(cudaFreeHost(part->track_particle));
+        delete[] part->track_particle;
 }
 
 void particles_positions_alloc_device(
