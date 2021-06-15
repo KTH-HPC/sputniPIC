@@ -51,3 +51,8 @@ vgcore.*
 *.bin
 
 __pycache__
+*.vscode
+*.tar.bz2
+*.png
+*.m
+*.csv

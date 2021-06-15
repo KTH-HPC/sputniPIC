@@ -23,10 +23,35 @@ struct parameters {
   int NiterMover;
   /** number of particle of subcycles in the mover */
   int n_sub_cycles;
-  /** **/
+
+  /** should particles be sorted **/
+  bool sort;
+  /** sort particles every n iterations **/
+  long sort_every_n;
+  /** number of cells per side in a sorting bin **/
+  long sort_cps;
+
+  /** split up the particles into n batches for processing on the GPU **/
   int number_of_batches;
-  /** **/
+  /** number of threads that the GPU should run per SM **/
   long threads_per_block;
+
+  /** should particles be tracked **/
+  bool track_particles;
+  /** number of particles to track **/
+  long n_tracked_particles; 
+  /** start cycle for sampling **/
+  long tracking_start_cycle;
+  /** end cycle for sampling **/
+  long tracking_end_cycle;
+  /** size of tracking sampling box - X direction **/
+  long tracking_Lx;
+  /** size of tracking sampling box - Y direction **/
+  long tracking_Ly;
+  /** size of tracking sampling box - Z direction **/
+  long tracking_Lz;
+  /** file for saving tracked files **/
+  std::string tracked_particles_filename; 
 
   /** simulation box length - X direction   */
   double Lx;

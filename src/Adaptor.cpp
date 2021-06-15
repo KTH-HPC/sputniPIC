@@ -1,3 +1,4 @@
+#ifdef USE_CATALYST
 #include "Adaptor.h"
 #include "PrecisionTypes.h"
 
@@ -200,3 +201,4 @@ void CoProcess(double time, unsigned int timeStep, FPfield ***Bx, FPfield ***By,
 }
 } // end of Catalyst namespace
 
+#endif

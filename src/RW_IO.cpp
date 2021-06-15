@@ -48,10 +48,35 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
   /** number of particle of subcycles in the mover */
   param->n_sub_cycles = config.read<int>("n_sub_cycles", 1);
 
+  /** should particles be sorted **/
+  param->sort = config.read<bool>("sort", false);
+  /** sort particles every n iterations **/
+  param->sort_every_n = config.read<long>("sort_every_n", 50);
+  /** number of cells per side in a sorting bin **/
+  param->sort_cps = config.read<long>("sort_cps", 4);
+
   /** number of particle batches per species when run on GPU **/
   param->number_of_batches = config.read<int>("number_of_batches", 16);
   /** number of threads per block to use when running kernels on GPU **/
   param->threads_per_block = config.read<long>("threads_per_block", 256);
+
+  /** track particles and write to file **/
+  param->track_particles = config.read<bool>("track_particles", false);
+  /** number of particles to track **/
+  param->n_tracked_particles = config.read<long>("n_tracked_particles", 1000);
+  /** start cycle for sampling **/
+  param->tracking_start_cycle = config.read<long>("tracking_start_cycle", 0);
+  /** end cycle for sampling **/
+  param->tracking_end_cycle = config.read<long>("tracking_end_cycle", 0);
+  /** size of tracking sampling box - X direction **/
+  param->tracking_Lx = config.read<double>("tracking_Lx", 1);
+  /** size of tracking sampling box - Y direction **/
+  param->tracking_Ly = config.read<double>("tracking_Ly", 1);
+  /** size of tracking sampling box - Z direction **/
+  param->tracking_Lz = config.read<double>("tracking_Lz", 1);
+  /** file for saving tracked particles **/
+  param->tracked_particles_filename 
+    = config.read<string>("tracked_particles_filename", "tracked_particles"); 
 
   /** simulation box length - X direction   */
   param->Lx = config.read<double>("Lx", 1);
@@ -345,6 +370,33 @@ void saveParameters(struct parameters *param) {
   my_file << "---------------------" << std::endl;
 
   my_file.close();
+}
+
+void saveParticlePositions(struct parameters *param, struct particles *part, int cycle, int species) {
+  string path = param->SaveDirName + "/" + param->tracked_particles_filename + "_species" + std::to_string(species) + ".csv";
+
+  std::ofstream particlesPosFile;
+
+  if (cycle == param->tracking_start_cycle) {
+    particlesPosFile.open(path.c_str(), std::ofstream::out);
+    particlesPosFile << "x_0, y_0, z_0, u_0, v_0, w_0, x_1, y_1, z_1, u_1, v_1, w_1, ..." << std::endl;
+  }
+  else {
+    particlesPosFile.open(path.c_str(), std::ofstream::out | std::ofstream::app);
+  }
+
+  std::ostringstream line;
+  for (size_t p = 0; p < part->npmax; p++) {
+    if (part->track_particle[p]) {
+      line << part->x[p] << "," << part->y[p] << "," << part->z[p] 
+        << "," << part->u[p] << "," << part->v[p] << "," << part->w[p] << ",";
+    }
+  }
+  line.seekp(-1, line.cur); // Remove trailing comma ","
+  line << std::endl;
+  particlesPosFile << line.str();
+
+  particlesPosFile.close();
 }
 
 void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struct parameters *param) {

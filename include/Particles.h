@@ -1,9 +1,12 @@
 #ifndef PARTICLES_H
 #define PARTICLES_H
 
+#include <vector>
 #include <math.h>
+#include <cstring>
 #include "Parameters.h"
 #include "PrecisionTypes.h"
+#include "Grid.h"
 
 struct particles {
   /** species ID: 0, 1, 2 , ... */
@@ -86,6 +89,12 @@ void particle_allocate(struct parameters *param, struct particles *part,
 
 /** deallocate */
 void particle_deallocate(struct particles *part);
+
+
+/** sort particles with regards to grid layout **/
+void particle_sort(struct parameters *params,
+                    struct particles *particles,
+                    struct grid *grd);
 
 void particle_aux_allocate(struct particles *part,
                            struct particles_aux *part_aux, int is);
