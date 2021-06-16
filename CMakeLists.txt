@@ -3,7 +3,7 @@ project(sputniPIC)
 enable_language(CXX)
 
 # ParaView adaptor is still under development!
-option(Build_ParaView "Build ParaView support" ON)
+option(Build_ParaView "Build ParaView support" OFF)
 option(BUILD_GPU "Build GPU binary" ON)
 option(BUILD_CPU "Build CPU binary" ON)
 
