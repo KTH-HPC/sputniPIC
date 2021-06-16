@@ -145,8 +145,8 @@ int main(int argc, char** argv) {
     }
 
 #if defined(USE_CATALYST)
-    if (!mpi_rank)
-        printf("init catalyst\n");
+    if (!mpi_rank) {
+        std::cout << "Initialize Catalyst CoProcessor..." << std::endl;
         Adaptor::Initialize(param.CatalystScriptName.c_str(),
       	                    0,
       	                    0,
@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
       	                    grd.dx,
       	                    grd.dy,
       	                    grd.dz);
+    }
 #endif
 
     // ====================================================== //

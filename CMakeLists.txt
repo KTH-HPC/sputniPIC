@@ -3,7 +3,7 @@ project(sputniPIC)
 enable_language(CXX)
 
 # ParaView adaptor is still under development!
-option(Build_ParaView "Build ParaView support" OFF)
+option(Build_ParaView "Build ParaView support" ON)
 option(BUILD_GPU "Build GPU binary" ON)
 option(BUILD_CPU "Build CPU binary" ON)
 
@@ -90,18 +90,17 @@ if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND AND HDF5_FOUND)
         include)
 
     # compile with highest optimization
-    target_compile_options(sputniPIC PUBLIC -O3 ${ARCH} -ffast-math)
-
-    # link to Catalyst adaptor if adaptor is built
-    if (ParaView_FOUND AND Build_ParaView)
-        target_link_libraries(sputniPIC PUBLIC catalystAdaptor)
-        target_compile_definitions(sputniPIC PUBLIC -DUSE_CATALYST)
-    endif()
+    target_compile_options(sputniPIC PUBLIC -O3 ${ARCH} -ffast-math -Wall -Wextra -pedantic)
 
     # build CPU executable
     if (BUILD_CPU)
         add_executable(sputniPIC_CPU.out src/sputniPIC_CPU.cpp)
-        target_link_libraries(sputniPIC_CPU.out sputniPIC)
+        target_link_libraries(sputniPIC_CPU.out PRIVATE sputniPIC)
+        # link to Catalyst adaptor if adaptor is built
+        if (ParaView_FOUND AND Build_ParaView)
+            target_link_libraries(sputniPIC_CPU.out PRIVATE catalystAdaptor)
+            target_compile_definitions(sputniPIC_CPU.out PUBLIC -DUSE_CATALYST)
+        endif()
         message(STATUS "Building CPU binary")
     endif()
 
@@ -132,7 +131,7 @@ if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND AND HDF5_FOUND)
 
             # enable all GPU parts of code and optimize
             target_compile_definitions(sputniPIC_gpu PUBLIC -DUSE_GPU)
-            target_compile_options(sputniPIC_gpu PUBLIC -O3 ${ARCH} -ffast-math)
+            target_compile_options(sputniPIC_gpu PUBLIC -O3 ${ARCH} -ffast-math -Wall -Wextra -pedantic)
 
             # support compute 3.5 onwards
             set_property(TARGET sputniPIC_gpu PROPERTY CUDA_ARCHITECTURES 35 37 50 60 61 70 75 80)
