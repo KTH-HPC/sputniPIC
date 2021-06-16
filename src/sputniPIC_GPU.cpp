@@ -53,6 +53,9 @@
 // Cuda memcheck and particle batching helper
 #include "gpu/cuda_helper.h"
 
+#if defined(USE_CATALYST)
+#include "Adaptor.h"
+#endif
 
 double timer(
     double *mean, 
@@ -140,6 +143,21 @@ int main(int argc, char** argv) {
         initGEM(&param,&grd,&field,&field_aux,part_global,ids);
         //initUniform(&params_global,&grd,&field,&field_aux,part_global,ids);
     }
+
+#if defined(USE_CATALYST)
+    if (!mpi_rank)
+        printf("init catalyst\n");
+        Adaptor::Initialize(param.CatalystScriptName.c_str(),
+      	                    0,
+      	                    0,
+      	                    0,
+      	                    grd.nxn,
+      	                    grd.nyn,
+      	                    grd.nzn,
+      	                    grd.dx,
+      	                    grd.dy,
+      	                    grd.dz);
+#endif
 
     // ====================================================== //
     // Distribute system to slave processors.
@@ -433,6 +451,13 @@ int main(int argc, char** argv) {
                     HDF5_Write_Particles(cycle, part, &param);
                 }
 
+#if defined(USE_CATALYST)
+        if (!mpi_rank && param.CatalystCoProcessCycle > 0 && cycle % param.CatalystCoProcessCycle == 0) {
+            printf("Sending for CoProcessing...\n");
+            Adaptor::CoProcess(param.dt*cycle, cycle, field.Bxn, field.Byn, field.Bzn, ids[0].rhon, ids[1].rhon);
+        }
+#endif
+
         // Update timer for io
         time0 = timer(&average[4], &variance[4], &cycle_time[4], time0, cycle);
 
@@ -513,6 +538,10 @@ int main(int argc, char** argv) {
         std::cout << "   IO Time / Cycle      (s) = " << average[4] << "+-" << sqrt(variance[4] / (param.ncycles - 1)) << std::endl;
         std::cout << "******************************************************" << std::endl;
     }
+
+#if defined(USE_CATALYST)
+    Adaptor::Finalize();
+#endif
 
     MPI_Finalize();
     // exit

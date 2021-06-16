@@ -223,6 +223,8 @@ take on the boundary of the domain 2 =  Periodic Condition
   int RestartOutputCycle;
   /** Output for diagnostics */
   int DiagnosticsOutputCycle;
+  /** Output for CoProcessing */
+  int CatalystCoProcessCycle;
 
   /** inputfile */
   std::string inputfile;
@@ -232,5 +234,7 @@ take on the boundary of the domain 2 =  Periodic Condition
   std::string RestartDirName;
   /** name of the file with wave amplitude and phases */
   std::string WaveFile;
+  /** Catalyst CoProcess Script */
+  std::string CatalystScriptName;
 };
 #endif

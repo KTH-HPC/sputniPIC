@@ -293,6 +293,10 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
 
   param->SaveDirName = config.read<string>("SaveDirName");
   param->RestartDirName = config.read<string>("RestartDirName");
+
+  // take Catalyst CoProcess cycles
+  param->CatalystCoProcessCycle = config.read<int>("CatalystCoProcessCycle", 0);
+  param->CatalystScriptName = config.read<string>("CatalystScriptName", "./image.py");
 }
 
 /** Print Simulation Parameters */

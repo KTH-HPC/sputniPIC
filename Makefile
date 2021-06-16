@@ -1,7 +1,7 @@
 VERSION=GPU
 
 CXX=mpicxx
-CXXFLAGS=-std=c++11 -I./include -O3 -g -fopenmp -Wall
+CXXFLAGS=-std=c++11 $(HDF5_CFLAGS) -I./include -O3 -g -fopenmp -Wall
 
 HDF5_LIBS=-L/usr/local/lib -lhdf5
 HDF5_CFLAGS=-I/usr/local/include
@@ -13,17 +13,18 @@ NVCCFLAGS=-DMEMCHECK -DUSE_GPU -lineinfo $(HDF5_CFLAGS) -I./include $(ARCH) -std
 # Default to use host compiler and flags
 COMPILER=$(CXX)
 FLAGS=$(CXXFLAGS)
-TARGET=sputniPIC.out
 SRCDIR=src
 
 # Check go GPU or CPU path
 ifeq ($(VERSION), GPU)
+    TARGET=sputniPIC_GPU.out
     FILES=$(shell find $(SRCDIR) -name '*.cu' -o -name '*.cpp')
     SRCS=$(subst $(SRCDIR)/sputniPIC_CPU.cpp,,${FILES})
 
     COMPILER=$(NVCC)
     COMPILER_FLAGS=$(NVCCFLAGS)
 else
+    TARGET=sputniPIC_CPU.out
     FILES=$(shell find $(SRCDIR) -path $(SRCDIR)/gpu -prune -o -name '*.cpp' -print)
     SRCS=$(subst $(SRCDIR)/sputniPIC_GPU.cpp,,${FILES})
 
