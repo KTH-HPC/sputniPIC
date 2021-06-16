@@ -1,4 +1,5 @@
 #include <stdio.h>
+
 #include "gpu/InterpDensNet_gpu.cuh"
 
 /**
@@ -229,8 +230,8 @@ void sumOverSpecies_gpu(struct interpDensNet* idn_gpu_ptr,
   int blocks = (grd->nxn * grd->nyn * grd->nzn + param->threads_per_block - 1) /
                param->threads_per_block;
 
-  sum_over_species_gpu<<<blocks, param->threads_per_block>>>(idn_gpu_ptr, ids_gpu_ptr,
-                                                      grd_gpu_ptr);
+  sum_over_species_gpu<<<blocks, param->threads_per_block>>>(
+      idn_gpu_ptr, ids_gpu_ptr, grd_gpu_ptr);
 }
 
 __global__ void sum_over_species_gpu(struct interpDensNet* idn,

@@ -11,24 +11,30 @@ void applyBCids_gpu(cudaStream_t* stream, struct interpDensSpecies* ids_gpu,
   // printf("thx:%d, thy:%d, thz:%d\n", th_x, th_y, th_z);
 
   if (param->PERIODICX) {
-    applyBCids_x_p_gpu<<<(th_x + param->threads_per_block - 1) / param->threads_per_block,
+    applyBCids_x_p_gpu<<<(th_x + param->threads_per_block - 1) /
+                             param->threads_per_block,
                          param->threads_per_block>>>(ids_gpu, grd_gpu);
   } else {
-    applyBCids_x_np_gpu<<<(th_x + param->threads_per_block - 1) / param->threads_per_block,
+    applyBCids_x_np_gpu<<<(th_x + param->threads_per_block - 1) /
+                              param->threads_per_block,
                           param->threads_per_block>>>(ids_gpu, grd_gpu);
   }
   if (param->PERIODICY) {
-    applyBCids_y_p_gpu<<<(th_y + param->threads_per_block - 1) / param->threads_per_block,
+    applyBCids_y_p_gpu<<<(th_y + param->threads_per_block - 1) /
+                             param->threads_per_block,
                          param->threads_per_block>>>(ids_gpu, grd_gpu);
   } else {
-    applyBCids_y_np_gpu<<<(th_y + param->threads_per_block - 1) / param->threads_per_block,
+    applyBCids_y_np_gpu<<<(th_y + param->threads_per_block - 1) /
+                              param->threads_per_block,
                           param->threads_per_block>>>(ids_gpu, grd_gpu);
   }
   if (param->PERIODICZ) {
-    applyBCids_z_p_gpu<<<(th_z + param->threads_per_block - 1) / param->threads_per_block,
+    applyBCids_z_p_gpu<<<(th_z + param->threads_per_block - 1) /
+                             param->threads_per_block,
                          param->threads_per_block>>>(ids_gpu, grd_gpu);
   } else {
-    applyBCids_z_np_gpu<<<(th_z + param->threads_per_block - 1) / param->threads_per_block,
+    applyBCids_z_np_gpu<<<(th_z + param->threads_per_block - 1) /
+                              param->threads_per_block,
                           param->threads_per_block>>>(ids_gpu, grd_gpu);
   }
 }

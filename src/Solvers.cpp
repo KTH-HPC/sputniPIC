@@ -1,5 +1,7 @@
 #include "Solvers.h"
+
 #include <math.h>
+
 #include "Basic.h"
 
 bool CG(FPfield *xkrylov, int xkrylovlen, FPfield *b, int maxit, double tol,

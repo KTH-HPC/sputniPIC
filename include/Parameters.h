@@ -39,7 +39,7 @@ struct parameters {
   /** should particles be tracked **/
   bool track_particles;
   /** number of particles to track **/
-  long n_tracked_particles; 
+  long n_tracked_particles;
   /** start cycle for sampling **/
   long tracking_start_cycle;
   /** end cycle for sampling **/
@@ -51,7 +51,7 @@ struct parameters {
   /** size of tracking sampling box - Z direction **/
   long tracking_Lz;
   /** file for saving tracked files **/
-  std::string tracked_particles_filename; 
+  std::string tracked_particles_filename;
 
   /** simulation box length - X direction   */
   double Lx;

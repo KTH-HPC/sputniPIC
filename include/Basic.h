@@ -2,6 +2,7 @@
 #define Basic_H
 
 #include <math.h>
+
 #include "PrecisionTypes.h"
 
 /** method to calculate the parallel dot product with vect1, vect2 having the

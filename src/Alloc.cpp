@@ -3,11 +3,10 @@
 #include <cstdio>
 #include <cstring>
 
-
 template <class type>
 inline type *newArr1(size_t sz1) {
   type *arr = new type[sz1];
-  memset(arr, 0, sizeof(type)*sz1);
+  memset(arr, 0, sizeof(type) * sz1);
   return arr;
 }
 

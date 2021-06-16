@@ -1,12 +1,12 @@
 #ifndef INTERP_DENS_NET_GPU_H
 #define INTERP_DENS_NET_GPU_H
 
+#include <cstring>
+
 #include "Alloc.h"
 #include "Grid.h"
 #include "InterpDensNet.h"
 #include "PrecisionTypes.h"
-
-#include <cstring>
 #include "gpu/cuda_helper.h"
 
 /**
@@ -53,7 +53,8 @@ __global__ void set_zero_species_densities_nodes(struct interpDensSpecies* ids,
 
 void sumOverSpecies_gpu(struct interpDensNet* idn_gpu_ptr,
                         struct interpDensSpecies* ids_gpu_ptr,
-                        struct grid* grd_gpu_ptr, struct grid* grd, struct parameters* param);
+                        struct grid* grd_gpu_ptr, struct grid* grd,
+                        struct parameters* param);
 
 __global__ void sum_over_species_gpu(struct interpDensNet* idn,
                                      struct interpDensSpecies* ids,

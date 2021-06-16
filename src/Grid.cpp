@@ -1,4 +1,5 @@
 #include "Grid.h"
+
 #include <iostream>
 
 /** Set up the grid quantities */

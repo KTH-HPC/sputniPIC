@@ -5,7 +5,6 @@
 #include <cuda_runtime.h>
 #include <math.h>
 #include <stdio.h>
-#include "device_launch_parameters.h"
 
 #include "Alloc.h"
 #include "EMfield.h"
@@ -14,8 +13,8 @@
 #include "Parameters.h"
 #include "Particles.h"
 #include "PrecisionTypes.h"
-
 #include "cudaDummy.cuh"
+#include "device_launch_parameters.h"
 #include "gpu/EMfield_gpu.h"
 #include "gpu/Grid_gpu.h"
 #include "gpu/cuda_helper.h"

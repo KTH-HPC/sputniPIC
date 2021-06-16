@@ -1,9 +1,11 @@
+#include "RW_IO.h"
+
 #include <string.h>
-#include <cmath>
+
 #include <cassert>
+#include <cmath>
 
 #include "ConfigFile.h"
-#include "RW_IO.h"
 #include "input_array.h"
 
 /** read the inputfile given via the command line */
@@ -76,8 +78,8 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
   /** size of tracking sampling box - Z direction **/
   param->tracking_Lz = config.read<double>("tracking_Lz", 1);
   /** file for saving tracked particles **/
-  param->tracked_particles_filename 
-    = config.read<string>("tracked_particles_filename", "tracked_particles"); 
+  param->tracked_particles_filename =
+      config.read<string>("tracked_particles_filename", "tracked_particles");
 
   /** simulation box length - X direction   */
   param->Lx = config.read<double>("Lx", 1);
@@ -296,7 +298,8 @@ void readInputFile(struct parameters *param, int argc, char **argv) {
 
   // take Catalyst CoProcess cycles
   param->CatalystCoProcessCycle = config.read<int>("CatalystCoProcessCycle", 0);
-  param->CatalystScriptName = config.read<string>("CatalystScriptName", "./image.py");
+  param->CatalystScriptName =
+      config.read<string>("CatalystScriptName", "./image.py");
 }
 
 /** Print Simulation Parameters */
@@ -329,8 +332,7 @@ void saveParameters(struct parameters *param) {
 
   try {
     my_file.open(temp.c_str());
-  }
-  catch(const std::runtime_error& error) {
+  } catch (const std::runtime_error &error) {
     std::cerr << "Fail to open " << temp << std::endl;
     std::exit(1);
   }
@@ -377,31 +379,37 @@ void saveParameters(struct parameters *param) {
   my_file.close();
 }
 
-void HDF5_Write_Particles(int cycle, struct particles *part_local, struct parameters *param)
-{
-  hid_t status, file_id, group_id, dataspace_id, dataset_id, attr_space_id, attr_id;
+void HDF5_Write_Particles(int cycle, struct particles *part_local,
+                          struct parameters *param) {
+  hid_t status, file_id, group_id, dataspace_id, dataset_id, attr_space_id,
+      attr_id;
   int mpi_rank, mpi_comm_size;
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_size);
 
-  string path = param->SaveDirName + "/" + param->tracked_particles_filename + "_proc" + std::to_string(mpi_rank) + "_" + std::to_string(cycle) + ".h5";
-  file_id     = H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  string path = param->SaveDirName + "/" + param->tracked_particles_filename +
+                "_proc" + std::to_string(mpi_rank) + "_" +
+                std::to_string(cycle) + ".h5";
+  file_id = H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   attr_space_id = H5Screate(H5S_SCALAR);
-  attr_id       = H5Acreate(file_id, "Cycle", H5T_NATIVE_INT, attr_space_id, H5P_DEFAULT, H5P_DEFAULT);
-  status        = H5Awrite(attr_id, H5T_NATIVE_INT, &cycle);
+  attr_id = H5Acreate(file_id, "Cycle", H5T_NATIVE_INT, attr_space_id,
+                      H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attr_id, H5T_NATIVE_INT, &cycle);
   assert(status == 0);
   status = H5Aclose(attr_id);
   assert(status == 0);
 
-  attr_id       = H5Acreate(file_id, "Process", H5T_NATIVE_INT, attr_space_id, H5P_DEFAULT, H5P_DEFAULT);
-  status        = H5Awrite(attr_id, H5T_NATIVE_INT, &mpi_rank);
+  attr_id = H5Acreate(file_id, "Process", H5T_NATIVE_INT, attr_space_id,
+                      H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attr_id, H5T_NATIVE_INT, &mpi_rank);
   assert(status == 0);
   status = H5Aclose(attr_id);
   assert(status == 0);
 
-  attr_id       = H5Acreate(file_id, "No. Processes", H5T_NATIVE_INT, attr_space_id, H5P_DEFAULT, H5P_DEFAULT);
-  status        = H5Awrite(attr_id, H5T_NATIVE_INT, &mpi_comm_size);
+  attr_id = H5Acreate(file_id, "No. Processes", H5T_NATIVE_INT, attr_space_id,
+                      H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attr_id, H5T_NATIVE_INT, &mpi_comm_size);
   assert(status == 0);
   status = H5Aclose(attr_id);
   assert(status == 0);
@@ -410,53 +418,66 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local, struct parame
   assert(status == 0);
 
   for (int species = 0; species < param->ns; species++) {
-    hsize_t dims[] { part_local[species].nop };
+    hsize_t dims[]{part_local[species].nop};
     string group_name = "/species_" + std::to_string(species);
 
-    group_id     = H5Gcreate(file_id, group_name.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    group_id = H5Gcreate(file_id, group_name.c_str(), H5P_DEFAULT, H5P_DEFAULT,
+                         H5P_DEFAULT);
     assert(group_id >= 0);
 
     dataspace_id = H5Screate_simple(1, dims, NULL);
     assert(dataspace_id >= 0);
 
-    dataset_id   = H5Dcreate(group_id, "x", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(group_id, "x", H5T_IEEE_F32BE, dataspace_id,
+                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     assert(dataset_id >= 0);
-    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].x);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, part_local[species].x);
     assert(status == 0);
-    status       = H5Dclose(dataset_id);
-    assert(status == 0);
-
-    dataset_id   = H5Dcreate(group_id, "y", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].y);
-    assert(status == 0);
-    status       = H5Dclose(dataset_id);
+    status = H5Dclose(dataset_id);
     assert(status == 0);
 
-    dataset_id   = H5Dcreate(group_id, "z", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].z);
+    dataset_id = H5Dcreate(group_id, "y", H5T_IEEE_F32BE, dataspace_id,
+                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, part_local[species].y);
     assert(status == 0);
-    status       = H5Dclose(dataset_id);
-    assert(status == 0);
-
-    dataset_id   = H5Dcreate(group_id, "u", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].u);
-    assert(status == 0);
-    status       = H5Dclose(dataset_id);
+    status = H5Dclose(dataset_id);
     assert(status == 0);
 
-    dataset_id   = H5Dcreate(group_id, "v", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].v);
+    dataset_id = H5Dcreate(group_id, "z", H5T_IEEE_F32BE, dataspace_id,
+                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, part_local[species].z);
     assert(status == 0);
-    status       = H5Dclose(dataset_id);
-    assert(status == 0);
-
-    dataset_id   = H5Dcreate(group_id, "w", H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status       = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, part_local[species].w);
-    assert(status == 0);
-    status       = H5Dclose(dataset_id);
+    status = H5Dclose(dataset_id);
     assert(status == 0);
 
-    status       = H5Gclose(group_id);
+    dataset_id = H5Dcreate(group_id, "u", H5T_IEEE_F32BE, dataspace_id,
+                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, part_local[species].u);
+    assert(status == 0);
+    status = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id = H5Dcreate(group_id, "v", H5T_IEEE_F32BE, dataspace_id,
+                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, part_local[species].v);
+    assert(status == 0);
+    status = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    dataset_id = H5Dcreate(group_id, "w", H5T_IEEE_F32BE, dataspace_id,
+                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, part_local[species].w);
+    assert(status == 0);
+    status = H5Dclose(dataset_id);
+    assert(status == 0);
+
+    status = H5Gclose(group_id);
     assert(status == 0);
   }
 
@@ -464,36 +485,42 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local, struct parame
   assert(status == 0);
 }
 
-void saveParticlePositions(struct parameters *param, struct particles *part, int cycle, int species) {
+void saveParticlePositions(struct parameters *param, struct particles *part,
+                           int cycle, int species) {
   int world_rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  string path = param->SaveDirName + "/" + param->tracked_particles_filename + "_species" + std::to_string(species) + "proc" + std::to_string(world_rank) + ".csv";
+  string path = param->SaveDirName + "/" + param->tracked_particles_filename +
+                "_species" + std::to_string(species) + "proc" +
+                std::to_string(world_rank) + ".csv";
 
   std::ofstream particlesPosFile;
 
   if (cycle == param->tracking_start_cycle) {
     particlesPosFile.open(path.c_str(), std::ofstream::out);
-    particlesPosFile << "x_0, y_0, z_0, u_0, v_0, w_0, x_1, y_1, z_1, u_1, v_1, w_1, ..." << std::endl;
-  }
-  else {
-    particlesPosFile.open(path.c_str(), std::ofstream::out | std::ofstream::app);
+    particlesPosFile
+        << "x_0, y_0, z_0, u_0, v_0, w_0, x_1, y_1, z_1, u_1, v_1, w_1, ..."
+        << std::endl;
+  } else {
+    particlesPosFile.open(path.c_str(),
+                          std::ofstream::out | std::ofstream::app);
   }
 
   std::ostringstream line;
   for (size_t p = 0; p < part->npmax; p++) {
     if (part->track_particle[p]) {
-      line << part->x[p] << "," << part->y[p] << "," << part->z[p] 
-        << "," << part->u[p] << "," << part->v[p] << "," << part->w[p] << ",";
+      line << part->x[p] << "," << part->y[p] << "," << part->z[p] << ","
+           << part->u[p] << "," << part->v[p] << "," << part->w[p] << ",";
     }
   }
-  line.seekp(-1, line.cur); // Remove trailing comma ","
+  line.seekp(-1, line.cur);  // Remove trailing comma ","
   line << std::endl;
   particlesPosFile << line.str();
 
   particlesPosFile.close();
 }
 
-void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struct parameters *param) {
+void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field,
+                       struct parameters *param) {
   // stream file to be opened and managed
   string filename = "E";
   string temp;
@@ -573,8 +600,7 @@ void VTK_Write_Vectors(int cycle, struct grid *grd, struct EMfield *field, struc
 }
 
 void VTK_Write_Scalars(int cycle, struct grid *grd,
-                       struct interpDensSpecies *ids,
-                       struct interpDensNet *idn,
+                       struct interpDensSpecies *ids, struct interpDensNet *idn,
                        struct parameters *param) {
   // stream file to be opened and managed
   string filename = "rhoe";
@@ -617,7 +643,7 @@ void VTK_Write_Scalars(int cycle, struct grid *grd,
   my_file.close();
 
   filename = "rhoi";
-  temp = param->SaveDirName +"/" + filename + "_" + cc.str();
+  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
   std::ofstream my_file2(temp.c_str());
@@ -668,15 +694,14 @@ void VTK_Write_Scalars(int cycle, struct grid *grd,
 }
 
 template <typename T>
-void SwapEnd(T& var)
-{
-  char* varArray = reinterpret_cast<char*>(&var);
-  for(long i = 0; i < static_cast<long>(sizeof(var)/2); i++)
-    std::swap(varArray[sizeof(var) - 1 - i],varArray[i]);
+void SwapEnd(T &var) {
+  char *varArray = reinterpret_cast<char *>(&var);
+  for (long i = 0; i < static_cast<long>(sizeof(var) / 2); i++)
+    std::swap(varArray[sizeof(var) - 1 - i], varArray[i]);
 }
 
-void VTK_Write_Vectors_Binary(int cycle, struct grid *grd, struct EMfield *field, struct parameters *param) {
-
+void VTK_Write_Vectors_Binary(int cycle, struct grid *grd,
+                              struct EMfield *field, struct parameters *param) {
   // stream file to be opened and managed
   std::ofstream vtk_field;
 
@@ -699,18 +724,20 @@ void VTK_Write_Vectors_Binary(int cycle, struct grid *grd, struct EMfield *field
   FPfield Ex = 0, Ey = 0, Ez = 0;
 
   std::cout << "Opening file: " << temp << std::endl;
-  vtk_field.open(temp.c_str(), std::ios::out | std::ios::app | std::ios::binary);
+  vtk_field.open(temp.c_str(),
+                 std::ios::out | std::ios::app | std::ios::binary);
 
   if (vtk_field) {
     vtk_field << "# vtk DataFile Version 2.0" << std::endl;
     vtk_field << "E field" << std::endl;
     vtk_field << "BINARY" << std::endl;
     vtk_field << "DATASET STRUCTURED_POINTS" << std::endl;
-    vtk_field << "DIMENSIONS " << (nxn - 3) << " " << (nyn - 3) << " " << (nzn - 3)
-              << std::endl;
+    vtk_field << "DIMENSIONS " << (nxn - 3) << " " << (nyn - 3) << " "
+              << (nzn - 3) << std::endl;
     vtk_field << "ORIGIN " << 0.0 << " " << 0.0 << " " << 0.0 << std::endl;
     vtk_field << "SPACING " << dx << " " << dy << " " << dz << std::endl;
-    vtk_field << "POINT_DATA " << (nxn - 3) * (nyn - 3) * (nzn - 3) << std::endl;
+    vtk_field << "POINT_DATA " << (nxn - 3) * (nyn - 3) * (nzn - 3)
+              << std::endl;
     if (sizeof(FPfield) == sizeof(double))
       vtk_field << "VECTORS E double" << std::endl;
     else
@@ -725,16 +752,15 @@ void VTK_Write_Vectors_Binary(int cycle, struct grid *grd, struct EMfield *field
           if (fabs(Ey) < 1E-8) Ey = 0.0;
           Ez = field->Ez[i][j][k];
           if (fabs(Ez) < 1E-8) Ez = 0.0;
-          //my_fileE << Ex << " " << Ey << " " << Ez << std::endl;
+          // my_fileE << Ex << " " << Ey << " " << Ez << std::endl;
           SwapEnd(Ex);
           SwapEnd(Ey);
           SwapEnd(Ez);
-          vtk_field.write((char*)&Ex, sizeof(FPfield));
-          vtk_field.write((char*)&Ey, sizeof(FPfield));
-          vtk_field.write((char*)&Ez, sizeof(FPfield));
+          vtk_field.write((char *)&Ex, sizeof(FPfield));
+          vtk_field.write((char *)&Ey, sizeof(FPfield));
+          vtk_field.write((char *)&Ez, sizeof(FPfield));
         }
-  }
-  else {
+  } else {
     std::cerr << "Error opening " << temp << std::endl;
   }
 
@@ -744,13 +770,14 @@ void VTK_Write_Vectors_Binary(int cycle, struct grid *grd, struct EMfield *field
   temp = param->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
-  vtk_field.open(temp.c_str(), std::ios::out | std::ios::app | std::ios::binary);
+  vtk_field.open(temp.c_str(),
+                 std::ios::out | std::ios::app | std::ios::binary);
   vtk_field << "# vtk DataFile Version 2.0" << std::endl;
   vtk_field << "B field" << std::endl;
   vtk_field << "BINARY" << std::endl;
   vtk_field << "DATASET STRUCTURED_POINTS" << std::endl;
-  vtk_field << "DIMENSIONS " << (nxn - 3) << " " << (nyn - 3) << " " << (nzn - 3)
-            << std::endl;
+  vtk_field << "DIMENSIONS " << (nxn - 3) << " " << (nyn - 3) << " "
+            << (nzn - 3) << std::endl;
   vtk_field << "ORIGIN " << 0.0 << " " << 0.0 << " " << 0.0 << std::endl;
   vtk_field << "SPACING " << dx << " " << dy << " " << dz << std::endl;
   vtk_field << "POINT_DATA " << (nxn - 3) * (nyn - 3) * (nzn - 3) << std::endl;
@@ -771,12 +798,11 @@ void VTK_Write_Vectors_Binary(int cycle, struct grid *grd, struct EMfield *field
           SwapEnd(Bx);
           SwapEnd(By);
           SwapEnd(Bz);
-          vtk_field.write((char*)&Bx, sizeof(float));
-          vtk_field.write((char*)&By, sizeof(float));
-          vtk_field.write((char*)&Bz, sizeof(float));
+          vtk_field.write((char *)&Bx, sizeof(float));
+          vtk_field.write((char *)&By, sizeof(float));
+          vtk_field.write((char *)&Bz, sizeof(float));
         }
-  }
-  else {
+  } else {
     std::cerr << "Error opening " << temp << std::endl;
   }
 
@@ -784,9 +810,9 @@ void VTK_Write_Vectors_Binary(int cycle, struct grid *grd, struct EMfield *field
 }
 
 void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
-                       struct interpDensSpecies *ids,
-                       struct interpDensNet *idn,
-                       struct parameters *param) {
+                              struct interpDensSpecies *ids,
+                              struct interpDensNet *idn,
+                              struct parameters *param) {
   // stream file to be opened and managed
   string filename = "rhoe";
   string temp;
@@ -825,13 +851,13 @@ void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
       for (int i = 1; i < nxn - 2; i++) {
         val = ids[0].rhon[i][j][k];
         SwapEnd(val);
-        my_file.write((char*)&val, sizeof(FPinterp));
+        my_file.write((char *)&val, sizeof(FPinterp));
       }
 
   my_file.close();
 
   filename = "rhoi";
-  temp = param->SaveDirName +"/" + filename + "_" + cc.str();
+  temp = param->SaveDirName + "/" + filename + "_" + cc.str();
   temp += ".vtk";
   std::cout << "Opening file: " << temp << std::endl;
   std::ofstream my_file2(temp.c_str());
@@ -852,7 +878,7 @@ void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
       for (int i = 1; i < nxn - 2; i++) {
         val = ids[1].rhon[i][j][k];
         SwapEnd(val);
-        my_file2.write((char*)&val, sizeof(FPinterp));
+        my_file2.write((char *)&val, sizeof(FPinterp));
       }
 
   my_file2.close();
@@ -879,7 +905,7 @@ void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
       for (int i = 1; i < nxn - 2; i++) {
         val = idn->rhon[i][j][k];
         SwapEnd(val);
-        my_file1.write((char*)&val, sizeof(FPinterp));
+        my_file1.write((char *)&val, sizeof(FPinterp));
       }
 
   my_file1.close();

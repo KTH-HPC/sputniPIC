@@ -1,4 +1,5 @@
 #include "Basic.h"
+
 #include <math.h>
 
 /** method to calculate the parallel dot product with vect1, vect2 having the
@@ -203,8 +204,8 @@ void addscale(FPfield alfa, FPfield beta, FPfield ***vect1, FPfield ***vect2,
     for (int j = 0; j < ny; j++)
 #pragma clang loop vectorize(enable)
       for (int k = 0; k < nz; k++) {
-          vect1[i][j][k] = beta * vect1[i][j][k] + alfa * vect2[i][j][k];
-        }
+        vect1[i][j][k] = beta * vect1[i][j][k] + alfa * vect2[i][j][k];
+      }
 }
 
 /** method to calculate vector1 = alfa*vector2 + beta*vector3 */
@@ -344,12 +345,12 @@ double eps() {
   double newsum = 1;
   double oldsum = 1;
   while (true) {
-      num = num / (2 * i);
-      newsum += num;
-      if (newsum == oldsum) break;
-      oldsum = newsum;
-      i++;
-    }
+    num = num / (2 * i);
+    newsum += num;
+    if (newsum == oldsum) break;
+    oldsum = newsum;
+    i++;
+  }
   eps = num * 2;
   return (eps);
 }

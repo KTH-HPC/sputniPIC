@@ -2,6 +2,7 @@
 #define SOLVERS_H
 
 #include <math.h>
+
 #include "EMfield.h"
 #include "Grid.h"
 #include "InterpDensSpecies.h"

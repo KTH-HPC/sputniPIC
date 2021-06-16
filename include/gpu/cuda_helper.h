@@ -4,6 +4,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
+
 #include "Parameters.h"
 
 #ifdef __INTELLISENSE__
@@ -31,6 +32,6 @@ inline void checkGpuError(cudaError_t result, char const *const func,
 /**
  * Return an appropriate size for particle batch
  */
-size_t get_appropriate_batch_size(struct parameters* param);
+size_t get_appropriate_batch_size(struct parameters *param);
 
 #endif

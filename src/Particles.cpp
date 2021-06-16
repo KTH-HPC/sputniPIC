@@ -1,4 +1,5 @@
 #include "Particles.h"
+
 #include <math.h>
 
 /** allocate particle arrays */
@@ -69,9 +70,8 @@ inline long bin_index(long x, long y, long z, long ny, long nz) {
 }
 
 /** sort particles with regards to grid layout **/
-void particle_sort(struct parameters *params,
-                    struct particles *particles,
-                    struct grid *grd) {
+void particle_sort(struct parameters *params, struct particles *particles,
+                   struct grid *grd) {
   /**
    * This function can be done in two ways.
    * The first is to simply loop through the sorting zones one by one
@@ -97,16 +97,19 @@ void particle_sort(struct parameters *params,
   FPpart *w = new FPpart[particles->npmax];
   FPinterp *q = new FPpart[particles->npmax];
   long p_counter = 0;
-  
+
   // Calculate and setup number of sorting zones.
   for (long x_zone = 0; x_zone < grd->nxc; x_zone += params->sort_cps) {
     for (long y_zone = 0; y_zone < grd->nyc; y_zone += params->sort_cps) {
       for (long z_zone = 0; z_zone < grd->nzc; z_zone += params->sort_cps) {
         for (long i = 0; i < particles->nop; i++) {
           if (!is_particle_sorted[i]) {
-            if (particles->x[i] >= x_zone * grd->dx && particles->x[i] < (x_zone + params->sort_cps + 1) * grd->dx 
-                && particles->y[i] >= y_zone * grd->dy && particles->y[i] < (y_zone + params->sort_cps + 1) * grd->dy
-                && particles->z[i] >= z_zone * grd->dz && particles->z[i] < (z_zone + params->sort_cps + 1) * grd->dz) {
+            if (particles->x[i] >= x_zone * grd->dx &&
+                particles->x[i] < (x_zone + params->sort_cps + 1) * grd->dx &&
+                particles->y[i] >= y_zone * grd->dy &&
+                particles->y[i] < (y_zone + params->sort_cps + 1) * grd->dy &&
+                particles->z[i] >= z_zone * grd->dz &&
+                particles->z[i] < (z_zone + params->sort_cps + 1) * grd->dz) {
               is_particle_sorted[i] = true;
               x[p_counter] = particles->x[p_counter];
               y[p_counter] = particles->y[p_counter];
@@ -158,17 +161,16 @@ void particle_sort(struct parameters *params,
   long n_binx = 1 + ((grd->nxc - 1) / params->sort_cps);
   long n_biny = 1 + ((grd->nyc - 1) / params->sort_cps);
   long n_binz = 1 + ((grd->nzc - 1) / params->sort_cps);
-  FPpart dist_binx = grd->Lx / (FPpart) n_binx;
-  FPpart dist_biny = grd->Ly / (FPpart) n_biny;
-  FPpart dist_binz = grd->Lz / (FPpart) n_binz;
+  FPpart dist_binx = grd->Lx / (FPpart)n_binx;
+  FPpart dist_biny = grd->Ly / (FPpart)n_biny;
+  FPpart dist_binz = grd->Lz / (FPpart)n_binz;
 
   long bins_tot = n_binx * n_biny * n_binz;
 
   // Create a vector containing vectors that represent each bin where
   // particle indexes can be stored. Indexing is done z -> y -> x.
   // Add extra bin for "lost" particles.
-  std::vector<std::vector<long>> bins(
-    bins_tot + 1, std::vector<long>());
+  std::vector<std::vector<long> > bins(bins_tot + 1, std::vector<long>());
 
   // Reserve space ahead of usage.
   for (auto bin : bins) {
@@ -181,13 +183,11 @@ void particle_sort(struct parameters *params,
     long pos_y = floor(particles->y[i] / dist_biny);
     long pos_z = floor(particles->z[i] / dist_binz);
 
-    if (pos_x < 0 || pos_x >= n_binx
-        || pos_y < 0 || pos_y >= n_biny
-        || pos_z < 0 || pos_z >= n_binz) {
+    if (pos_x < 0 || pos_x >= n_binx || pos_y < 0 || pos_y >= n_biny ||
+        pos_z < 0 || pos_z >= n_binz) {
       // Particle is not inside the bin zone.
       bins.back().push_back(i);
-    } 
-    else {
+    } else {
       bins[bin_index(pos_x, pos_y, pos_z, n_biny, n_binz)].push_back(i);
     }
   }

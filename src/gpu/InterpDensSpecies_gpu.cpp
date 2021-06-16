@@ -1,7 +1,8 @@
 #include "gpu/InterpDensSpecies_gpu.h"
-#include "PrecisionTypes.h"
 
 #include <cstring>
+
+#include "PrecisionTypes.h"
 #include "gpu/cuda_helper.h"
 
 /**

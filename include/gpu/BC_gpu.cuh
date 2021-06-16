@@ -1,12 +1,12 @@
 #ifndef BC_GPU_H
 #define BC_GPU_H
 
+#include <cuda_runtime.h>
+
 #include "Grid.h"
 #include "InterpDensSpecies.h"
 #include "Parameters.h"
 #include "PrecisionTypes.h"
-
-#include <cuda_runtime.h>
 #include "cudaDummy.cuh"
 #include "gpu/InterpDensSpecies_gpu.h"
 #include "gpu/cuda_helper.h"
