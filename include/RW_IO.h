@@ -1,7 +1,11 @@
 #ifndef RW_IO_H
 #define RW_IO_H
 
-#include <hdf5.h>
+#ifdef USE_MERO
+#include <aoi_functions.h>
+#else
+//#include <hdf5.h>
+#endif
 
 #include <sstream>
 #include <string>
@@ -36,5 +40,9 @@ void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
 
 void HDF5_Write_Particles(int cycle, struct particles *part_local,
                           struct parameters *param);
+
+#ifdef USE_MERO
+void aoi_init(const char *rc_filename);
+#endif
 
 #endif

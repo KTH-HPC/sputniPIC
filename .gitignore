@@ -56,3 +56,6 @@ __pycache__
 *.png
 *.m
 *.csv
+
+core.*
+m0trace.*

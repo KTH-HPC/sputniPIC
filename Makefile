@@ -1,9 +1,10 @@
-VERSION=GPU
+VERSION=CPU
 
+#CXX=/usr/lib64/openmpi/bin/mpicxx
 CXX=mpicxx
-CXXFLAGS=-std=c++11 $(HDF5_CFLAGS) -I./include -O3 -g -fopenmp -Wall
+CXXFLAGS=-std=c++11 $(HDF5_CFLAGS) -I/home/users/project/SHARED/libaoi -I./include -O3 -g -fopenmp -Wall -Wno-unknown-pragmas -DUSE_MERO
 
-HDF5_LIBS=-L/usr/local/lib -lhdf5
+HDF5_LIBS=-L/usr/local/lib -L/home/users/project/SHARED/libaoi -laoi  #-lhdf5
 HDF5_CFLAGS=-I/usr/local/include
 NVCC=nvcc
 

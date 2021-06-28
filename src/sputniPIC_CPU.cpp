@@ -70,7 +70,9 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
   std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
-
+#ifdef USE_MERO
+aoi_init("./sagerc");
+#endif
   // ====================================================== //
   // Read the inputfile and fill the param structure
   // Read the input file name from command line
@@ -347,6 +349,10 @@ int main(int argc, char **argv) {
 
 #if defined(USE_CATALYST)
   Adaptor::Finalize();
+#endif
+
+#ifdef USE_MERO
+aoi_fini();
 #endif
 
   MPI_Finalize();

@@ -1,12 +1,68 @@
 #include "RW_IO.h"
 
+//#include <mpi.h>
 #include <string.h>
-
 #include <cassert>
 #include <cmath>
 
 #include "ConfigFile.h"
 #include "input_array.h"
+
+#include <mpi.h>
+
+#ifdef USE_MERO
+#include <assert.h>
+
+#ifdef VERIFY_MERO
+#include <unistd.h>
+#endif
+
+#define LINE_BUF_SIZE 256
+#define EPS 0.001
+
+static size_t clovis_block_size = 4096;
+//static size_t clovis_block_size = 32768;
+
+static char clovis_local_addr[LINE_BUF_SIZE];
+static char clovis_ha_addr[LINE_BUF_SIZE];
+static char clovis_prof[LINE_BUF_SIZE];
+static char clovis_proc_fid[LINE_BUF_SIZE];
+//static char rc_filename[] = "sagerc";
+static unsigned int tier = 0;
+//const static uint64_t _METADATA_CHUNK_ID = 0xffffffffffffffff;
+
+static int get_line(FILE *fp, char *dst) {
+	char buffer[LINE_BUF_SIZE] = {0};
+	while (1) {
+		assert(std::fgets(buffer, LINE_BUF_SIZE, fp) != NULL);
+		if (strlen(buffer) == 0 || buffer[0] == '#' || buffer[0] == '\n')
+			continue;
+		char *end = buffer + strlen(buffer) - 1;
+		while (*end == '\n')
+			*(end--) = '\0';
+		strcpy(dst, buffer);
+		break;
+	}
+	return 1;
+}
+
+void aoi_init(const char *rc_filename) {
+	FILE *rc_file = fopen(rc_filename, "r");
+	assert(rc_file != NULL);
+	get_line(rc_file, clovis_local_addr);
+	printf("laddr: %s\t", clovis_local_addr);
+	get_line(rc_file, clovis_ha_addr);
+	printf("ha_addr: %s\t", clovis_ha_addr);
+	get_line(rc_file, clovis_prof);
+	printf("prof: %s\t", clovis_prof);
+	get_line(rc_file, clovis_proc_fid);
+	printf("proc fid: %s\n", clovis_proc_fid);
+	fclose(rc_file);
+	int rc = aoi_init(clovis_local_addr, clovis_ha_addr, clovis_prof,
+			clovis_proc_fid, clovis_block_size, tier);
+	assert(rc == 0);
+}
+#endif
 
 /** read the inputfile given via the command line */
 void readInputFile(struct parameters *param, int argc, char **argv) {
@@ -379,17 +435,111 @@ void saveParameters(struct parameters *param) {
   my_file.close();
 }
 
-void HDF5_Write_Particles(int cycle, struct particles *part_local,
+void HDF5_Write_Particles(int cycle, struct particles *parts,
                           struct parameters *param) {
-  hid_t status, file_id, group_id, dataspace_id, dataset_id, attr_space_id,
-      attr_id;
-  int mpi_rank, mpi_comm_size;
+  int mpi_rank = 0, mpi_comm_size = 1;
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_size);
+#ifdef USE_MERO
+  double t0, t1;
+  int rc;
+  string object_name;
+  FILE *fp = nullptr;
 
+  for (size_t species = 0; species < param->ns; species++) {
+    // PUT x positions
+    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
+                  "_proc" + std::to_string(mpi_rank) + "_" +
+                  std::to_string(cycle) + "_" + "x" + std::to_string(species);
+    //rc = aoi_delete(object_name.c_str());
+    t0 = MPI_Wtime();
+    rc = aoi_put(object_name.c_str(), (const char*)parts[species].x, parts[species].npmax, sizeof(FPpart));
+    t1 = MPI_Wtime();
+    assert(rc == 0);
+    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+    fp = std::fopen(object_name.c_str(), "wb");
+    fwrite(parts[species].x, sizeof(FPpart), parts[species].npmax, fp);
+    fclose(fp);
+
+    // PUT y positions
+    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
+                  "_proc" + std::to_string(mpi_rank) + "_" +
+                  std::to_string(cycle) + "_" + "y" + std::to_string(species);
+    //rc = aoi_delete(object_name.c_str());
+    t0 = MPI_Wtime();
+    rc = aoi_put(object_name.c_str(), (const char*)parts[species].y, parts[species].npmax, sizeof(FPpart));
+    t1 = MPI_Wtime();
+    assert(rc == 0);
+    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+    fp = std::fopen(object_name.c_str(), "wb");
+    fwrite(parts[species].y, sizeof(FPpart), parts[species].npmax, fp);
+    fclose(fp);
+
+    // PUT z positions
+    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
+                  "_proc" + std::to_string(mpi_rank) + "_" +
+                  std::to_string(cycle) + "_" + "z" + std::to_string(species);
+    //rc = aoi_delete(object_name.c_str());
+    t0 = MPI_Wtime();
+    rc = aoi_put(object_name.c_str(), (const char*)parts[species].z, parts[species].npmax, sizeof(FPpart));
+    t1 = MPI_Wtime();
+    assert(rc == 0);
+    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+    fp = std::fopen(object_name.c_str(), "wb");
+    fwrite(parts[species].z, sizeof(FPpart), parts[species].npmax, fp);
+    fclose(fp);
+
+
+    // PUT u positions
+    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
+                  "_proc" + std::to_string(mpi_rank) + "_" +
+                  std::to_string(cycle) + "_" + "u" + std::to_string(species);
+    //rc = aoi_delete(object_name.c_str());
+    t0 = MPI_Wtime();
+    rc = aoi_put(object_name.c_str(), (const char*)parts[species].u, parts[species].npmax, sizeof(FPpart));
+    t1 = MPI_Wtime();
+    assert(rc == 0);
+    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+    fp = std::fopen(object_name.c_str(), "wb");
+    fwrite(parts[species].u, sizeof(FPpart), parts[species].npmax, fp);
+    fclose(fp);
+
+
+    // PUT v positions
+    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
+                  "_proc" + std::to_string(mpi_rank) + "_" +
+                  std::to_string(cycle) + "_" + "v" + std::to_string(species);
+    //rc = aoi_delete(object_name.c_str());
+    t0 = MPI_Wtime();
+    rc = aoi_put(object_name.c_str(), (const char*)parts[species].v, parts[species].npmax, sizeof(FPpart));
+    t1 = MPI_Wtime();
+    assert(rc == 0);
+    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+    fp = std::fopen(object_name.c_str(), "wb");
+    fwrite(parts[species].v, sizeof(FPpart), parts[species].npmax, fp);
+    fclose(fp);
+
+
+    // PUT w positions
+    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
+                  "_proc" + std::to_string(mpi_rank) + "_" +
+                  std::to_string(cycle) + "_" + "w" + std::to_string(species);
+    //rc = aoi_delete(object_name.c_str());
+    t0 = MPI_Wtime();
+    rc = aoi_put(object_name.c_str(), (const char*)parts[species].w, parts[species].npmax, sizeof(FPpart));
+    t1 = MPI_Wtime();
+    assert(rc == 0);
+    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+    fp = std::fopen(object_name.c_str(), "wb");
+    fwrite(parts[species].w, sizeof(FPpart), parts[species].npmax, fp);
+    fclose(fp);
+  }
+#else // to use HDF5
   string path = param->SaveDirName + "/" + param->tracked_particles_filename +
                 "_proc" + std::to_string(mpi_rank) + "_" +
                 std::to_string(cycle) + ".h5";
+  hid_t status, file_id, group_id, dataspace_id, dataset_id, attr_space_id,
+      attr_id;
   file_id = H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   attr_space_id = H5Screate(H5S_SCALAR);
@@ -418,7 +568,7 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local,
   assert(status == 0);
 
   for (int species = 0; species < param->ns; species++) {
-    hsize_t dims[]{part_local[species].nop};
+    hsize_t dims[]{parts[species].npmax};
     string group_name = "/species_" + std::to_string(species);
 
     group_id = H5Gcreate(file_id, group_name.c_str(), H5P_DEFAULT, H5P_DEFAULT,
@@ -432,7 +582,7 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local,
                            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     assert(dataset_id >= 0);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
-                      H5P_DEFAULT, part_local[species].x);
+                      H5P_DEFAULT, parts[species].x);
     assert(status == 0);
     status = H5Dclose(dataset_id);
     assert(status == 0);
@@ -440,7 +590,7 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local,
     dataset_id = H5Dcreate(group_id, "y", H5T_IEEE_F32BE, dataspace_id,
                            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
-                      H5P_DEFAULT, part_local[species].y);
+                      H5P_DEFAULT, parts[species].y);
     assert(status == 0);
     status = H5Dclose(dataset_id);
     assert(status == 0);
@@ -448,7 +598,7 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local,
     dataset_id = H5Dcreate(group_id, "z", H5T_IEEE_F32BE, dataspace_id,
                            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
-                      H5P_DEFAULT, part_local[species].z);
+                      H5P_DEFAULT, parts[species].z);
     assert(status == 0);
     status = H5Dclose(dataset_id);
     assert(status == 0);
@@ -456,7 +606,7 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local,
     dataset_id = H5Dcreate(group_id, "u", H5T_IEEE_F32BE, dataspace_id,
                            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
-                      H5P_DEFAULT, part_local[species].u);
+                      H5P_DEFAULT, parts[species].u);
     assert(status == 0);
     status = H5Dclose(dataset_id);
     assert(status == 0);
@@ -464,7 +614,7 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local,
     dataset_id = H5Dcreate(group_id, "v", H5T_IEEE_F32BE, dataspace_id,
                            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
-                      H5P_DEFAULT, part_local[species].v);
+                      H5P_DEFAULT, parts[species].v);
     assert(status == 0);
     status = H5Dclose(dataset_id);
     assert(status == 0);
@@ -472,7 +622,7 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local,
     dataset_id = H5Dcreate(group_id, "w", H5T_IEEE_F32BE, dataspace_id,
                            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
-                      H5P_DEFAULT, part_local[species].w);
+                      H5P_DEFAULT, parts[species].w);
     assert(status == 0);
     status = H5Dclose(dataset_id);
     assert(status == 0);
@@ -483,11 +633,12 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local,
 
   status = H5Fclose(file_id);
   assert(status == 0);
+#endif
 }
 
 void saveParticlePositions(struct parameters *param, struct particles *part,
                            int cycle, int species) {
-  int world_rank;
+  int world_rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   string path = param->SaveDirName + "/" + param->tracked_particles_filename +
                 "_species" + std::to_string(species) + "proc" +
