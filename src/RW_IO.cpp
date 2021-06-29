@@ -460,7 +460,7 @@ void HDF5_Write_Particles(int cycle, struct particles *parts,
   string object_name;
   FILE *fp = nullptr;
 
-  for (size_t species = 0; species < param->ns; species++) {
+  for (int species = 0; species < param->ns; species++) {
     // PUT x positions
     object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
                   "_proc" + std::to_string(mpi_rank) + "_" +
@@ -678,7 +678,7 @@ void saveParticlePositions(struct parameters *param, struct particles *part,
   }
 
   std::ostringstream line;
-  for (size_t p = 0; p < part->npmax; p++) {
+  for (int p = 0; p < part->npmax; p++) {
     if (part->track_particle[p]) {
       line << part->x[p] << "," << part->y[p] << "," << part->z[p] << ","
            << part->u[p] << "," << part->v[p] << "," << part->w[p] << ",";
@@ -851,7 +851,6 @@ void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
       for (int j = 1; j < nyn - 2; j++)
         for (int i = 1; i < nxn - 2; i++) {
           val = ids[quantity].rhon[i][j][k];
-std::cout << offset << " " << val << std::endl;
           buff[offset++] = val;
         }
 
