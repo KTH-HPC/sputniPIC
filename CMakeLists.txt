@@ -17,7 +17,7 @@ endif()
 
 # improve optimization
 if(NOT ARCH)
-  set(ARCH "-march=native")
+  set(ARCH "")
 else()
   set(ARCH "-march=${ARCH}")
 endif()
@@ -79,18 +79,24 @@ if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND AND HDF5_FOUND)
     # link sputniPIC with libraries
     target_link_libraries(sputniPIC PRIVATE
         ${HDF5_C_LIBRARIES}
+        /home/users/project/SHARED/libaoi/libaoi.so
+        /home/users/project/SHARED/numerical-object-storage/src/libobjects.so
         OpenMP::OpenMP_CXX
         MPI::MPI_CXX)
 
     # include header paths for sputniPIC
     target_include_directories(sputniPIC PRIVATE
         ${HDF5_INCLUDE_DIRS}
-        ${MPI_INCLUDE_PATH})
+        ${MPI_INCLUDE_PATH}
+        /home/users/project/SHARED/protoc-c/include
+        /home/users/project/SHARED/libaoi
+        /home/users/project/SHARED/numerical-object-storage/include)
     target_include_directories(sputniPIC PUBLIC
         include)
 
     # compile with highest optimization
-    target_compile_options(sputniPIC PUBLIC -O3 ${ARCH} -ffast-math -Wall -Wextra -pedantic)
+    target_compile_options(sputniPIC PUBLIC -O3 ${ARCH} -ffast-math -Wall -Wextra -pedantic -Wno-unknown-pragmas)
+    target_compile_definitions(sputniPIC PUBLIC -DUSE_MERO -DVERIFY_MERO)
 
     # build CPU executable
     if (BUILD_CPU)
@@ -131,7 +137,7 @@ if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND AND HDF5_FOUND)
 
             # enable all GPU parts of code and optimize
             target_compile_definitions(sputniPIC_gpu PUBLIC -DUSE_GPU)
-            target_compile_options(sputniPIC_gpu PUBLIC -O3 ${ARCH} -ffast-math -Wall -Wextra -pedantic)
+            target_compile_options(sputniPIC_gpu PUBLIC -O3 ${ARCH} -ffast-math -Wall -Wextra -pedantic -Wno-unknown-pragmas)
 
             # support compute 3.5 onwards
             set_property(TARGET sputniPIC_gpu PROPERTY CUDA_ARCHITECTURES 35 37 50 60 61 70 75 80)

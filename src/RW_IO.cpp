@@ -1,5 +1,14 @@
 #include "RW_IO.h"
 
+#ifdef USE_MERO
+extern "C" {
+#include "aoi_functions.h"
+#include "libobjects.h"
+}
+#else
+#include <hdf5.h>
+#endif
+
 //#include <mpi.h>
 #include <string.h>
 #include <cassert>
@@ -61,6 +70,11 @@ void aoi_init(const char *rc_filename) {
 	int rc = aoi_init(clovis_local_addr, clovis_ha_addr, clovis_prof,
 			clovis_proc_fid, clovis_block_size, tier);
 	assert(rc == 0);
+}
+
+void aoi_finalize()
+{
+	return aoi_fini();
 }
 #endif
 
@@ -471,9 +485,11 @@ void HDF5_Write_Particles(int cycle, struct particles *parts,
     t1 = MPI_Wtime();
     assert(rc == 0);
     std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+#ifdef VERIFY_MERO
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].y, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
+#endif
 
     // PUT z positions
     object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
@@ -485,10 +501,11 @@ void HDF5_Write_Particles(int cycle, struct particles *parts,
     t1 = MPI_Wtime();
     assert(rc == 0);
     std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+#ifdef VERIFY_MERO
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].z, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-
+#endif
 
     // PUT u positions
     object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
@@ -500,10 +517,11 @@ void HDF5_Write_Particles(int cycle, struct particles *parts,
     t1 = MPI_Wtime();
     assert(rc == 0);
     std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+#ifdef VERIFY_MERO
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].u, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-
+#endif
 
     // PUT v positions
     object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
@@ -515,10 +533,11 @@ void HDF5_Write_Particles(int cycle, struct particles *parts,
     t1 = MPI_Wtime();
     assert(rc == 0);
     std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+#ifdef VERIFY_MERO
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].v, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-
+#endif
 
     // PUT w positions
     object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
@@ -530,9 +549,11 @@ void HDF5_Write_Particles(int cycle, struct particles *parts,
     t1 = MPI_Wtime();
     assert(rc == 0);
     std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+#ifdef VERIFY_MERO
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].w, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
+#endif
   }
 #else // to use HDF5
   string path = param->SaveDirName + "/" + param->tracked_particles_filename +
@@ -679,6 +700,8 @@ void SwapEnd(T &var) {
 
 void VTK_Write_Vectors_Binary(int cycle, struct grid *grd,
                               struct EMfield *field, struct parameters *param) {
+#ifdef USE_MERO
+#else
   // stream file to be opened and managed
   std::ofstream vtk_field;
 
@@ -784,12 +807,68 @@ void VTK_Write_Vectors_Binary(int cycle, struct grid *grd,
   }
 
   vtk_field.close();
+#endif
 }
 
 void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
                               struct interpDensSpecies *ids,
                               struct interpDensNet *idn,
                               struct parameters *param) {
+#ifdef USE_MERO
+  bucket *bkt = object_open_container("quantities");
+
+  string filename = "rhoe";
+  string quantity_name;
+
+  // get the number of nodes
+  int nxn = grd->nxn;
+  int nyn = grd->nyn;
+  int nzn = grd->nzn;
+
+  // get the grid spacing
+  double dx = grd->dx;
+  double dy = grd->dy;
+  double dz = grd->dz;
+
+  FPinterp *buff = (FPinterp*)malloc(sizeof(FPinterp) * (nzn - 3) * (nyn - 3) * (nxn - 3));
+  size_t offset = 0;
+  FPinterp val;
+
+  for (int quantity = 0; quantity < 3; quantity++) {
+    switch (quantity) {
+      case 0: quantity_name = "rhoe"; break;
+      case 1: quantity_name = "rhoi"; break;
+      case 2: quantity_name = "rho_net"; break;
+      default: throw "Invalid quantity ID!";
+    }
+
+    //filename = quantity_name + "_" + std::to_string(cycle) + ".vtk";
+    filename = quantity_name + "_" + std::to_string(cycle);
+    std::cout << "Preparing object: " << filename << std::endl;
+    offset = 0;
+
+    for (int k = 1; k < nzn - 2; k++)
+      for (int j = 1; j < nyn - 2; j++)
+        for (int i = 1; i < nxn - 2; i++) {
+          val = ids[quantity].rhon[i][j][k];
+std::cout << offset << " " << val << std::endl;
+          buff[offset++] = val;
+        }
+
+    int dims[] = { nzn - 3, nyn - 3, nxn - 3 };
+    object_put(bkt, filename.c_str(), FLOAT/*hardcoded*/, buff, 3, dims, 3, dims);
+#ifdef USE_MERO
+    filename = param->SaveDirName + "/" + filename;
+    FILE *fp = fopen(filename.c_str(), "wb");
+    fwrite(buff, sizeof(FPinterp), (nzn - 3) * (nyn - 3) * (nxn - 3), fp);
+    fclose(fp);
+#endif
+  }
+
+  object_close_container(bkt);
+  free(buff);
+
+#else
   // stream file to be opened and managed
   string filename = "rhoe";
   string temp;
@@ -886,4 +965,5 @@ void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
       }
 
   my_file1.close();
+#endif
 }

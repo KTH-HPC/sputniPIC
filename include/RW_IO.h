@@ -1,12 +1,6 @@
 #ifndef RW_IO_H
 #define RW_IO_H
 
-#ifdef USE_MERO
-#include <aoi_functions.h>
-#else
-//#include <hdf5.h>
-#endif
-
 #include <sstream>
 #include <string>
 
@@ -43,6 +37,7 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local,
 
 #ifdef USE_MERO
 void aoi_init(const char *rc_filename);
+void aoi_finalize();
 #endif
 
 #endif

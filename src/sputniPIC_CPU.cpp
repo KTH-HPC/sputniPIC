@@ -352,7 +352,7 @@ aoi_init("./sagerc");
 #endif
 
 #ifdef USE_MERO
-aoi_fini();
+aoi_finalize();
 #endif
 
   MPI_Finalize();
