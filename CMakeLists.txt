@@ -136,7 +136,7 @@ if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND AND HDF5_FOUND)
             add_executable(sputniPIC_GPU.out src/sputniPIC_GPU.cpp)
 
             # enable all GPU parts of code and optimize
-            target_compile_definitions(sputniPIC_gpu PUBLIC -DUSE_GPU)
+            target_compile_definitions(sputniPIC_gpu PUBLIC -DUSE_GPU -DUSE_MERO -DVERIFY_MERO)
             target_compile_options(sputniPIC_gpu PUBLIC -O3 ${ARCH} -ffast-math -Wall -Wextra -pedantic -Wno-unknown-pragmas)
 
             # support compute 3.5 onwards

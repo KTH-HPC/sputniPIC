@@ -56,6 +56,9 @@
 #include "Adaptor.h"
 #endif
 
+#include <unistd.h>
+#include <cassert>
+
 double timer(double* mean, double* variance, double* cycle, double start_time,
              long count);
 
@@ -68,7 +71,13 @@ int main(int argc, char** argv) {
   MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &mpi_thread_support);
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-
+  std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
+#ifdef USE_MERO
+  size_t hostname_len = 256;
+  char hostname[hostname_len];
+  assert( gethostname(hostname, hostname_len) == 0);
+  aoi_init("./sagerc_" + std::string(hostname), mpi_rank%16/*HARD CODED*/);
+#endif
   // ====================================================== //
   // Read the inputfile and fill the param structure
   // Read the input file name from command line
@@ -520,6 +529,10 @@ int main(int argc, char** argv) {
 
 #if defined(USE_CATALYST)
   Adaptor::Finalize();
+#endif
+
+#ifdef USE_MERO
+  aoi_finalize();
 #endif
 
   MPI_Finalize();

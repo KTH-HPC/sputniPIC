@@ -40,36 +40,26 @@ static char clovis_proc_fid[LINE_BUF_SIZE];
 static unsigned int tier = 0;
 //const static uint64_t _METADATA_CHUNK_ID = 0xffffffffffffffff;
 
-static int get_line(FILE *fp, char *dst) {
-	char buffer[LINE_BUF_SIZE] = {0};
-	while (1) {
-		assert(std::fgets(buffer, LINE_BUF_SIZE, fp) != NULL);
-		if (strlen(buffer) == 0 || buffer[0] == '#' || buffer[0] == '\n')
-			continue;
-		char *end = buffer + strlen(buffer) - 1;
-		while (*end == '\n')
-			*(end--) = '\0';
-		strcpy(dst, buffer);
-		break;
-	}
-	return 1;
-}
+void aoi_init(const std::string &mero_filename, int world_rank) {
+  ConfigFile config(mero_filename, "=");
+  std::string param_name;
 
-void aoi_init(const char *rc_filename) {
-	FILE *rc_file = fopen(rc_filename, "r");
-	assert(rc_file != NULL);
-	get_line(rc_file, clovis_local_addr);
-	printf("laddr: %s\t", clovis_local_addr);
-	get_line(rc_file, clovis_ha_addr);
-	printf("ha_addr: %s\t", clovis_ha_addr);
-	get_line(rc_file, clovis_prof);
-	printf("prof: %s\t", clovis_prof);
-	get_line(rc_file, clovis_proc_fid);
-	printf("proc fid: %s\n", clovis_proc_fid);
-	fclose(rc_file);
-	int rc = aoi_init(clovis_local_addr, clovis_ha_addr, clovis_prof,
-			clovis_proc_fid, clovis_block_size, tier);
-	assert(rc == 0);
+  param_name = "LOCAL_ENDPOINT_ADDR" + std::to_string(world_rank);
+  snprintf(clovis_local_addr, LINE_BUF_SIZE, "%s", config.read<std::string>(param_name).c_str());
+
+  param_name = "LOCAL_PROC_FID" + std::to_string(world_rank);
+  snprintf(clovis_proc_fid, LINE_BUF_SIZE, "%s", config.read<std::string>(param_name).c_str());
+
+  snprintf(clovis_ha_addr, LINE_BUF_SIZE, "%s", config.read<std::string>("HA_ENDPOINT_ADDR").c_str());
+  snprintf(clovis_prof, LINE_BUF_SIZE, "%s", config.read<std::string>("PROFILE_FID").c_str());
+
+  printf("laddr: %s\t", clovis_local_addr);
+  printf("ha_addr: %s\t", clovis_ha_addr);
+  printf("prof: %s\t", clovis_prof);
+  printf("proc fid: %s\n", clovis_proc_fid);
+  int rc = aoi_init(clovis_local_addr, clovis_ha_addr, clovis_prof,
+                    clovis_proc_fid, clovis_block_size, tier);
+  assert(rc == 0);
 }
 
 void aoi_finalize()
@@ -459,97 +449,118 @@ void HDF5_Write_Particles(int cycle, struct particles *parts,
   int rc;
   string object_name;
   FILE *fp = nullptr;
+  char uuid_str[37];
+  Object *obj = nullptr;
 
   for (int species = 0; species < param->ns; species++) {
+    std::string bucket_name = "particle_species" + std::to_string(species);
+    bucket *bkt = object_open_container(bucket_name.c_str());
+    int dims[] = { parts[species].npmax * mpi_comm_size };
+    int chunk_dims[] = { parts[species].npmax };
+
     // PUT x positions
-    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
-                  "_proc" + std::to_string(mpi_rank) + "_" +
-                  std::to_string(cycle) + "_" + "x" + std::to_string(species);
-    //rc = aoi_delete(object_name.c_str());
-    t0 = MPI_Wtime();
-    rc = aoi_put(object_name.c_str(), (const char*)parts[species].x, parts[species].npmax, sizeof(FPpart));
-    t1 = MPI_Wtime();
-    assert(rc == 0);
-    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+    object_name = param->tracked_particles_filename +
+                  "_" + std::to_string(cycle) + "_" + "x";
+    if(mpi_rank == 0) {
+      obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
+      strncpy(uuid_str, obj->id, 36);
+    }
+    MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].x, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    if(mpi_rank == 0) {
+      object_put_metadata(bkt, obj);
+    }
+
+    // PUT y positions
+    object_name = param->tracked_particles_filename +
+                  "_" + std::to_string(cycle) + "_" + "y";
+    if(mpi_rank == 0) {
+      obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
+      strncpy(uuid_str, obj->id, 36);
+    }
+    MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].y, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    if(mpi_rank == 0) {
+      object_put_metadata(bkt, obj);
+    }
+
+    // PUT z positions
+    object_name = param->tracked_particles_filename +
+                  "_" + std::to_string(cycle) + "_" + "z";
+    if(mpi_rank == 0) {
+      obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
+      strncpy(uuid_str, obj->id, 36);
+    }
+    MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].z, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    if(mpi_rank == 0) {
+      object_put_metadata(bkt, obj);
+    }
+
+    // PUT u positions
+    object_name = param->tracked_particles_filename +
+                  "_" + std::to_string(cycle) + "_" + "u";
+    if(mpi_rank == 0) {
+      obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
+      strncpy(uuid_str, obj->id, 36);
+    }
+    MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].u, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    if(mpi_rank == 0) {
+      object_put_metadata(bkt, obj);
+    }
+
+    // PUT v positions
+    object_name = param->tracked_particles_filename +
+                  "_" + std::to_string(cycle) + "_" + "v";
+    if(mpi_rank == 0) {
+      obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
+      strncpy(uuid_str, obj->id, 36);
+    }
+    MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].v, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    if(mpi_rank == 0) {
+      object_put_metadata(bkt, obj);
+    }
+
+    // PUT w positions
+    object_name = param->tracked_particles_filename +
+                  "_" + std::to_string(cycle) + "_" + "w";
+    if(mpi_rank == 0) {
+      obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
+      strncpy(uuid_str, obj->id, 36);
+    }
+    MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].w, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    if(mpi_rank == 0) {
+      object_put_metadata(bkt, obj);
+    }
+
+    object_close_container(bkt);
+
+#ifdef VERIFY_MERO
+    FILE *fp;
+    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_x_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].x, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-
-    // PUT y positions
-    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
-                  "_proc" + std::to_string(mpi_rank) + "_" +
-                  std::to_string(cycle) + "_" + "y" + std::to_string(species);
-    //rc = aoi_delete(object_name.c_str());
-    t0 = MPI_Wtime();
-    rc = aoi_put(object_name.c_str(), (const char*)parts[species].y, parts[species].npmax, sizeof(FPpart));
-    t1 = MPI_Wtime();
-    assert(rc == 0);
-    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
-#ifdef VERIFY_MERO
+    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_y_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].y, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-#endif
-
-    // PUT z positions
-    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
-                  "_proc" + std::to_string(mpi_rank) + "_" +
-                  std::to_string(cycle) + "_" + "z" + std::to_string(species);
-    //rc = aoi_delete(object_name.c_str());
-    t0 = MPI_Wtime();
-    rc = aoi_put(object_name.c_str(), (const char*)parts[species].z, parts[species].npmax, sizeof(FPpart));
-    t1 = MPI_Wtime();
-    assert(rc == 0);
-    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
-#ifdef VERIFY_MERO
+    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_z_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].z, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-#endif
-
-    // PUT u positions
-    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
-                  "_proc" + std::to_string(mpi_rank) + "_" +
-                  std::to_string(cycle) + "_" + "u" + std::to_string(species);
-    //rc = aoi_delete(object_name.c_str());
-    t0 = MPI_Wtime();
-    rc = aoi_put(object_name.c_str(), (const char*)parts[species].u, parts[species].npmax, sizeof(FPpart));
-    t1 = MPI_Wtime();
-    assert(rc == 0);
-    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
-#ifdef VERIFY_MERO
+    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_u_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].u, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-#endif
-
-    // PUT v positions
-    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
-                  "_proc" + std::to_string(mpi_rank) + "_" +
-                  std::to_string(cycle) + "_" + "v" + std::to_string(species);
-    //rc = aoi_delete(object_name.c_str());
-    t0 = MPI_Wtime();
-    rc = aoi_put(object_name.c_str(), (const char*)parts[species].v, parts[species].npmax, sizeof(FPpart));
-    t1 = MPI_Wtime();
-    assert(rc == 0);
-    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
-#ifdef VERIFY_MERO
+    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_v_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].v, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-#endif
-
-    // PUT w positions
-    object_name = param->SaveDirName + "/" + param->tracked_particles_filename +
-                  "_proc" + std::to_string(mpi_rank) + "_" +
-                  std::to_string(cycle) + "_" + "w" + std::to_string(species);
-    //rc = aoi_delete(object_name.c_str());
-    t0 = MPI_Wtime();
-    rc = aoi_put(object_name.c_str(), (const char*)parts[species].w, parts[species].npmax, sizeof(FPpart));
-    t1 = MPI_Wtime();
-    assert(rc == 0);
-    std::cout << "Put " << object_name << "(Time: " << t1 - t0 << " s) success!" << std::endl;
-#ifdef VERIFY_MERO
+    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_w_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].w, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
@@ -833,6 +844,8 @@ void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
   FPinterp *buff = (FPinterp*)malloc(sizeof(FPinterp) * (nzn - 3) * (nyn - 3) * (nxn - 3));
   size_t offset = 0;
   FPinterp val;
+  double t0 = 0.0, t1 = 0.0;
+  int rc;
 
   for (int quantity = 0; quantity < 3; quantity++) {
     switch (quantity) {
@@ -854,11 +867,18 @@ void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
           buff[offset++] = val;
         }
 
-    int dims[] = { nzn - 3, nyn - 3, nxn - 3 };
-    object_put(bkt, filename.c_str(), FLOAT/*hardcoded*/, buff, 3, dims, 3, dims);
-#ifdef USE_MERO
+    t0 = MPI_Wtime();
+    rc = aoi_put(filename.c_str(),
+                 (const char*)buff,
+                 (nzn - 3) * (nyn - 3) * (nxn - 3),
+                 sizeof(FPinterp));
+    t1 = MPI_Wtime();
+    assert(rc == 0);
+    std::cout << "Put " << filename << "(Time: " << t1 - t0 << " s) success!" << std::endl;
+
+#ifdef VERIFY_MERO
     filename = param->SaveDirName + "/" + filename;
-    FILE *fp = fopen(filename.c_str(), "wb");
+    FILE *fp = std::fopen(filename.c_str(), "wb");
     fwrite(buff, sizeof(FPinterp), (nzn - 3) * (nyn - 3) * (nxn - 3), fp);
     fclose(fp);
 #endif

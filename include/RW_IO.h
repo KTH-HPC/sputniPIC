@@ -36,7 +36,7 @@ void HDF5_Write_Particles(int cycle, struct particles *part_local,
                           struct parameters *param);
 
 #ifdef USE_MERO
-void aoi_init(const char *rc_filename);
+void aoi_init(const std::string &mero_filename, int world_rank);
 void aoi_finalize();
 #endif
 

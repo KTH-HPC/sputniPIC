@@ -52,6 +52,9 @@
 #include "Adaptor.h"
 #endif
 
+#include <unistd.h>
+#include <cassert>
+
 // ====================================================== //
 // Local function declarations
 
@@ -71,7 +74,10 @@ int main(int argc, char **argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
   std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
 #ifdef USE_MERO
-aoi_init("./sagerc");
+  size_t hostname_len = 256;
+  char hostname[hostname_len];
+  assert( gethostname(hostname, hostname_len) == 0);
+  aoi_init("./sagerc_" + std::string(hostname), mpi_rank%16);
 #endif
   // ====================================================== //
   // Read the inputfile and fill the param structure
@@ -352,7 +358,7 @@ aoi_init("./sagerc");
 #endif
 
 #ifdef USE_MERO
-aoi_finalize();
+  aoi_finalize();
 #endif
 
   MPI_Finalize();
