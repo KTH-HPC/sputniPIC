@@ -453,6 +453,7 @@ void HDF5_Write_Particles(int cycle, struct particles *parts,
   Object *obj = nullptr;
 
   for (int species = 0; species < param->ns; species++) {
+    t0 = MPI_Wtime();
     std::string bucket_name = "particle_species" + std::to_string(species);
     bucket *bkt = object_open_container(bucket_name.c_str());
     int dims[] = { parts[species].npmax * mpi_comm_size };
@@ -460,107 +461,109 @@ void HDF5_Write_Particles(int cycle, struct particles *parts,
 
     // PUT x positions
     object_name = param->tracked_particles_filename +
-                  "_" + std::to_string(cycle) + "_" + "x";
+                  "_x_" + std::to_string(cycle);
     if(mpi_rank == 0) {
       obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
-      strncpy(uuid_str, obj->id, 36);
+      strncpy(uuid_str, obj->id, 37);
     }
     MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
-    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].x, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].x, 0, 1/*chunk_rank*/, chunk_dims);
     if(mpi_rank == 0) {
       object_put_metadata(bkt, obj);
     }
 
     // PUT y positions
     object_name = param->tracked_particles_filename +
-                  "_" + std::to_string(cycle) + "_" + "y";
+                  "_y_" + std::to_string(cycle);
     if(mpi_rank == 0) {
       obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
-      strncpy(uuid_str, obj->id, 36);
+      strncpy(uuid_str, obj->id, 37);
     }
     MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
-    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].y, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].y, 0, 1/*chunk_rank*/, chunk_dims);
     if(mpi_rank == 0) {
       object_put_metadata(bkt, obj);
     }
 
     // PUT z positions
     object_name = param->tracked_particles_filename +
-                  "_" + std::to_string(cycle) + "_" + "z";
+                  "_z_" + std::to_string(cycle);
     if(mpi_rank == 0) {
       obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
-      strncpy(uuid_str, obj->id, 36);
+      strncpy(uuid_str, obj->id, 37);
     }
     MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
-    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].z, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].z, 0, 1/*chunk_rank*/, chunk_dims);
     if(mpi_rank == 0) {
       object_put_metadata(bkt, obj);
     }
 
     // PUT u positions
     object_name = param->tracked_particles_filename +
-                  "_" + std::to_string(cycle) + "_" + "u";
+                  "_u_" + std::to_string(cycle);
     if(mpi_rank == 0) {
       obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
-      strncpy(uuid_str, obj->id, 36);
+      strncpy(uuid_str, obj->id, 37);
     }
     MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
-    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].u, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].u, 0, 1/*chunk_rank*/, chunk_dims);
     if(mpi_rank == 0) {
       object_put_metadata(bkt, obj);
     }
 
     // PUT v positions
     object_name = param->tracked_particles_filename +
-                  "_" + std::to_string(cycle) + "_" + "v";
+                  "_v_" + std::to_string(cycle);
     if(mpi_rank == 0) {
       obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
-      strncpy(uuid_str, obj->id, 36);
+      strncpy(uuid_str, obj->id, 37);
     }
     MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
-    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].v, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].v, 0, 1/*chunk_rank*/, chunk_dims);
     if(mpi_rank == 0) {
       object_put_metadata(bkt, obj);
     }
 
     // PUT w positions
     object_name = param->tracked_particles_filename +
-                  "_" + std::to_string(cycle) + "_" + "w";
+                  "_w_" + std::to_string(cycle);
     if(mpi_rank == 0) {
       obj = object_create_metadata(bkt, object_name.c_str(), FLOAT, 1/*no. dim*/, dims, mpi_comm_size, 1/*chunk dim*/, chunk_dims);
-      strncpy(uuid_str, obj->id, 36);
+      strncpy(uuid_str, obj->id, 37);
     }
     MPI_Bcast(uuid_str, 37, MPI_CHAR, 0, MPI_COMM_WORLD);
-    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].w, mpi_rank * parts[species].npmax, 1/*chunk_rank*/, chunk_dims);
+    object_put_chunk(bkt, uuid_str, mpi_rank, FLOAT, parts[species].w, 0, 1/*chunk_rank*/, chunk_dims);
     if(mpi_rank == 0) {
       object_put_metadata(bkt, obj);
     }
 
     object_close_container(bkt);
+    t1 = MPI_Wtime();
+    std::cout << "Put species " << species << " success (time: " << t1 - t0 << ")!" << std::endl;
 
 #ifdef VERIFY_MERO
     FILE *fp;
-    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_x_" +  std::to_string(cycle);
+    object_name = param->SaveDirName + "/particle_proc" + std::to_string(mpi_rank) + "_" + std::to_string(species) + "_x_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].x, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_y_" +  std::to_string(cycle);
+    object_name = param->SaveDirName + "/particle_proc" + std::to_string(mpi_rank) + "_" + std::to_string(species) + "_y_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].y, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_z_" +  std::to_string(cycle);
+    object_name = param->SaveDirName + "/particle_proc" + std::to_string(mpi_rank) + "_" + std::to_string(species) + "_z_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].z, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_u_" +  std::to_string(cycle);
+    object_name = param->SaveDirName + "/particle_proc" + std::to_string(mpi_rank) + "_" + std::to_string(species) + "_u_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].u, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_v_" +  std::to_string(cycle);
+    object_name = param->SaveDirName + "/particle_proc" + std::to_string(mpi_rank) + "_" + std::to_string(species) + "_v_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].v, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);
-    object_name = param->SaveDirName + "/particle_" + std::to_string(species) + "_w_" +  std::to_string(cycle);
+    object_name = param->SaveDirName + "/particle_proc" + std::to_string(mpi_rank) + "_" + std::to_string(species) + "_w_" +  std::to_string(cycle);
     fp = std::fopen(object_name.c_str(), "wb");
     fwrite(parts[species].w, sizeof(FPpart), parts[species].npmax, fp);
     fclose(fp);

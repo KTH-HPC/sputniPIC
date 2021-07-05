@@ -73,10 +73,16 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
   std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
 #ifdef USE_MERO
+  std::cout << "USE_MERO: ON" << std::endl;
   size_t hostname_len = 256;
   char hostname[hostname_len];
   assert( gethostname(hostname, hostname_len) == 0);
   aoi_init("./sagerc_" + std::string(hostname), mpi_rank%16/*HARD CODED*/);
+#ifdef VERIFY_MERO
+  std::cout << "VERIFY_MERO: ON" << std::endl;
+#else
+  std::cout << "VERIFY_MERO: OFF" << std::endl;
+#endif
 #endif
   // ====================================================== //
   // Read the inputfile and fill the param structure
@@ -276,8 +282,8 @@ int main(int argc, char** argv) {
     std::cout << "CUDA return check: Disabled" << std::endl;
 #endif
     std::cout << "Total number of MPI ranks: " << mpi_size << std::endl;
-    std::cout << "Number of cores per rank: " << omp_get_max_threads()
-              << std::endl;
+//    std::cout << "Number of cores per rank: " << omp_get_max_threads()
+//              << std::endl;
     std::cout << "Number of GPUs per rank: " << num_devices << std::endl;
     std::cout << "Threads Per Block of GPUs: " << param.threads_per_block
               << std::endl;

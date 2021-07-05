@@ -74,10 +74,16 @@ int main(int argc, char **argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
   std::cout << "Total number of cores: " << omp_get_max_threads() << std::endl;
 #ifdef USE_MERO
+  std::cout << "USE_MERO: ON" << std::endl;
   size_t hostname_len = 256;
   char hostname[hostname_len];
   assert( gethostname(hostname, hostname_len) == 0);
   aoi_init("./sagerc_" + std::string(hostname), mpi_rank%16);
+#ifdef VERIFY_MERO
+  std::cout << "VERIFY_MERO: ON" << std::endl;
+#else
+  std::cout << "VERIFY_MERO: OFF" << std::endl;
+#endif
 #endif
   // ====================================================== //
   // Read the inputfile and fill the param structure
@@ -301,7 +307,7 @@ int main(int argc, char **argv) {
 #if defined(USE_CATALYST)
     if (param.CatalystCoProcessCycle > 0 &&
         cycle % param.CatalystCoProcessCycle == 0) {
-      printf("Sending for CoProcessing...\n");
+      std::cout << "Sending for CoProcessing..." << std::endl;
       Adaptor::CoProcess(param.dt * cycle, cycle, field.Bxn, field.Byn,
                          field.Bzn, ids[0].rhon, ids[1].rhon);
     }

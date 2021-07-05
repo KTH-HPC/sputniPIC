@@ -96,7 +96,7 @@ if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND AND HDF5_FOUND)
 
     # compile with highest optimization
     target_compile_options(sputniPIC PUBLIC -O3 ${ARCH} -ffast-math -Wall -Wextra -pedantic -Wno-unknown-pragmas)
-    target_compile_definitions(sputniPIC PUBLIC -DUSE_MERO -DVERIFY_MERO)
+    target_compile_definitions(sputniPIC PUBLIC -DUSE_MERO)# -DVERIFY_MERO)
 
     # build CPU executable
     if (BUILD_CPU)
@@ -124,8 +124,7 @@ if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND AND HDF5_FOUND)
 
             # link to sputniPIC core
             target_link_libraries(sputniPIC_gpu PRIVATE
-                sputniPIC
-                OpenMP::OpenMP_CXX)
+                sputniPIC)
 
             # include header paths to sputniPIC GPU and CUDA
             target_include_directories(sputniPIC_gpu PUBLIC 
@@ -136,11 +135,16 @@ if(OpenMP_CXX_FOUND AND MPI_CXX_FOUND AND HDF5_FOUND)
             add_executable(sputniPIC_GPU.out src/sputniPIC_GPU.cpp)
 
             # enable all GPU parts of code and optimize
-            target_compile_definitions(sputniPIC_gpu PUBLIC -DUSE_GPU -DUSE_MERO -DVERIFY_MERO)
+            target_compile_definitions(sputniPIC_gpu PUBLIC -DUSE_GPU -DUSE_MERO)# -DVERIFY_MERO)
             target_compile_options(sputniPIC_gpu PUBLIC -O3 ${ARCH} -ffast-math -Wall -Wextra -pedantic -Wno-unknown-pragmas)
 
             # support compute 3.5 onwards
-            set_property(TARGET sputniPIC_gpu PROPERTY CUDA_ARCHITECTURES 35 37 50 60 61 70 75 80)
+            if (CMAKE_VERSION VERSION_LESS 3.21)
+                target_compile_options(sputniPIC_gpu PRIVATE
+                    "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-gencode arch=compute_35,code=sm_35 -gencode arch=compute_37,code=sm_37 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70 -gencode arch=compute_75,code=sm_75 -gencode arch=compute_80,code=sm_80>")
+            else()
+                set_property(TARGET sputniPIC_gpu PROPERTY CUDA_ARCHITECTURES 35 37 50 60 61 70 75 80)
+            endif()
 
             # link to Catalyst adaptor if adaptor is built
             if (ParaView_FOUND AND Build_ParaView)
