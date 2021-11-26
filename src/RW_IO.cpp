@@ -381,6 +381,7 @@ void Particle_Max_Velocity(int cycle, struct particles *part_local, struct param
 
   for (int species = 0; species < param->ns; species++) {
     size_t nop = part_local[species].nop;
+    FPpart *vol_array = (FPpart*)calloc(nop, sizeof(FPpart));
     FPpart max_vol = -1.0;
     FPpart global_max_vol = -1.0;
     for (int part_id = 0; part_id < nop; part_id++) {
@@ -388,11 +389,13 @@ void Particle_Max_Velocity(int cycle, struct particles *part_local, struct param
       FPpart v = part_local[species].v[part_id];
       FPpart w = part_local[species].w[part_id];
       FPpart vol = std::pow(u * u + v * v + w * w, 0.5);
+      vol_array[part_id] = vol;
       if (vol > max_vol) max_vol = vol;
     }
     MPI_Reduce(&max_vol, &global_max_vol, 1, _mpi_get_basetype<FPpart>(), MPI_MAX, 0, MPI_COMM_WORLD);
     if (mpi_rank == 0)
       printf("Cycle: %d Max Particle Velocity(species: %d) = %f\n", cycle, species, global_max_vol);
+    free(vol_array);
   }
 }
 
