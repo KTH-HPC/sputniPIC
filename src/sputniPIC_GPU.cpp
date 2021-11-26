@@ -431,6 +431,7 @@ int main(int argc, char** argv) {
 
                 if (cycle % param.ParticlesOutputCycle == 0) {
                     HDF5_Write_Particles(cycle, part, &param);
+                    Particle_Max_Velocity(cycle, part, &param);
                 }
 
         // Update timer for io

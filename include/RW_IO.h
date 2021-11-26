@@ -40,4 +40,6 @@ void VTK_Write_Scalars_Binary(int cycle, struct grid *grd,
 
 void HDF5_Write_Particles(int cycle, struct particles *part_local, struct parameters *param);
 
+void Particle_Max_Velocity(int cycle, struct particles *part_local, struct parameters *param);
+
 #endif

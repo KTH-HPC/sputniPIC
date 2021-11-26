@@ -305,8 +305,10 @@ int main(int argc, char **argv){
             }
         }
 
+        // write particles and compute velocity
         if (cycle % param.ParticlesOutputCycle == 0) {
              HDF5_Write_Particles(cycle, part, &param);
+             Particle_Max_Velocity(cycle, part, &param);
         }
 
 #if defined(USE_CATALYST) && 0

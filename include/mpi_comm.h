@@ -10,6 +10,9 @@
 #include "Particles.h"
 #include "Parameters.h"
 
+template <typename T>
+MPI_Datatype _mpi_get_basetype();
+
 void mpi_reduce_densities(struct grid*, struct interpDensNet*);
 void mpi_reduce_densities(struct grid*, struct interpDensSpecies*);
 void mpi_broadcast_field(struct grid*, struct EMfield*);
